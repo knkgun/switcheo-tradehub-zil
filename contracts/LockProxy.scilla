@@ -100,6 +100,7 @@ contract LockProxy(
   init_manager: ByStr20
 )
 
+field stagingadmin: Option ByStr20 = None {ByStr20}
 field contractadmin: ByStr20  = init_admin
 field asset_map: Map ByStr20 (Map Uint64 ByStr) = Emp ByStr20 (Map Uint64 ByStr)
 (* The LockProxy in other blockchains *)
@@ -275,6 +276,43 @@ procedure CrossChain(toChainId: Uint64, toContract: ByStr, method: ByStr, txData
 end
 
 
+transition ChangeAdmin(newAdmin: ByStr20)
+    currentAdmin <- contractadmin;
+    isAdmin = builtin eq currentAdmin _sender;
+    match isAdmin with
+    | True =>
+      new_staging_admin = Some {ByStr20} newAdmin;
+      stagingadmin := new_staging_admin;
+      e = {_eventname: "ChangeAdmin"; oldAdmin: currentAdmin; newAdmin: newAdmin};
+      event e
+    | False =>
+      e = {_eventname: "ChangeAdmin FailedNotAdmin"; newAdmin: newAdmin};
+      event e
+    end
+end
+
+transition ClaimAdmin()
+    staging_admin_o <- stagingadmin;
+    match staging_admin_o with
+    | Some staging_admin =>
+      is_stagingadmin = builtin eq staging_admin _sender;
+      match is_stagingadmin with
+      | True =>
+        contractadmin := _sender;
+        tmp_staging_admin = None {ByStr20};
+        stagingadmin := tmp_staging_admin;
+        e = {_eventname: "ClaimAdmin"; newAdmin: _sender};
+        event e
+      | False =>
+        e = {_eventname: "ClaimAdmin FailedNotStagingadmin"; newAdmin: _sender};
+        event e
+      end
+    | None =>
+      e = {_eventname: "ClaimAdmin FailedNoStagingadmin"};
+      event e
+    end
+end
+
 (* This function is meant to be invoked by the user *)
 (* a certin amount teokens will be locked in the proxy contract the invoker/msg.sender immediately.*)
 (* Then the same amount of tokens will be unloked from target chain proxy contract at the target chain with chainId later. *)
@@ -327,7 +365,7 @@ transition unlock(args: ByStr, fromContractAddr: ByStr, fromChainId: Uint64)
   tx_args_o = deserialize_tx_args args uint32_zero;
   match tx_args_o with
   | Some (TxArgs toAssetHash toAddressHash amount) =>
-    (* ValidateToAssetHash toAssetHash; *)
+    ValidateToAssetHash toAssetHash;
     toAssetAddress_o = builtin to_bystr20 toAssetHash;
     toAddress_o = builtin to_bystr20 toAddressHash;
     match toAssetAddress_o with
