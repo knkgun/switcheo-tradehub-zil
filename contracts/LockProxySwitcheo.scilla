@@ -33,23 +33,18 @@ type Error =
   | AdminValidationFailed
   | AmountCannotBeZero
   | LockAmountMismatch
-  | IllegalToAssetHash
-  | IllegalToAmount
-  | IllegalTargetProxy
   | ManagerValidationFailed
-  | IllegalFromProxy
-  | ParseToAssetAddressFailed
-  | ParseToAddressFailed
   | IllegalAmount
   | EmptyFromProxy
-  | FromProxyNotExist
   | IllegalFromChainId
   | IllegalRegisterAssetArgs
   | AssetAlreadyRegistered
   | AssetNotRegistered
-  | EmptyToAssetHash
+  | EmptyHashStr
   | InvalidFeeAmount
   | InvalidCallAmount
+  | InvalidFromChainId
+  | InvalidUnlockArgs
 
 let make_error =
   fun (result: Error) =>
@@ -58,23 +53,18 @@ let make_error =
       | AdminValidationFailed => Int32 -1
       | AmountCannotBeZero => Int32 -2
       | LockAmountMismatch => Int32 -3
-      | IllegalToAssetHash => Int32 -4
-      | IllegalToAmount => Int32 -5
-      | IllegalTargetProxy => Int32 -6
-      | ManagerValidationFailed => Int32 -7
-      | IllegalFromProxy => Int32 -8
-      | ParseToAssetAddressFailed => Int32 -9
-      | ParseToAddressFailed => Int32 -10
-      | IllegalAmount => Int32 -11
-      | EmptyFromProxy => Int32 -12
-      | FromProxyNotExist => Int32 -13
-      | IllegalFromChainId => Int32 -14
-      | IllegalRegisterAssetArgs => Int32 -15
-      | AssetAlreadyRegistered => Int32 -16
-      | AssetNotRegistered => Int32 -17
-      | EmptyToAssetHash => Int32 -18
-      | InvalidFeeAmount => Int32 -19
-      | InvalidCallAmount => Int32 -20
+      | ManagerValidationFailed => Int32 -4
+      | IllegalAmount => Int32 -5
+      | EmptyFromProxy => Int32 -6
+      | IllegalFromChainId => Int32 -7
+      | IllegalRegisterAssetArgs => Int32 -8
+      | AssetAlreadyRegistered => Int32 -9
+      | AssetNotRegistered => Int32 -10
+      | EmptyHashStr => Int32 -11
+      | InvalidFeeAmount => Int32 -12
+      | InvalidCallAmount => Int32 -13
+      | InvalidFromChainId => Int32 -14
+      | InvalidUnlockArgs => Int32 -15
       end
     in
     { _exception: "Error"; code: result_code }
@@ -198,9 +188,6 @@ contract LockProxy(
 )
 
 field contractadmin: ByStr20  = init_admin
-field asset_map: Map ByStr20 (Map Uint64 ByStr) = Emp ByStr20 (Map Uint64 ByStr)
-(* The LockProxy in other blockchains *)
-field proxy_hash_map: Map Uint64 ByStr = Emp Uint64 ByStr
 field manager: ByStr20 = init_manager
 field manager_proxy: ByStr20 = init_manager_proxy
 field counterpart_chainId: Uint64 = init_counterpart_chainId
@@ -226,10 +213,32 @@ procedure IsAdmin(initiator: ByStr20)
   end
 end
 
+procedure IsManagerContract(initiator: ByStr20)
+  manager_l <- manager;
+  is_manager = builtin eq manager_l initiator;
+  match is_manager with
+  | True =>
+  | False =>
+    e = ManagerValidationFailed;
+    ThrowError e
+  end
+end
+
 procedure increaseNonce()
  old_nonce <- nonce;
  new_nonce = builtin add old_nonce uint256_one;
  nonce := new_nonce
+end
+
+procedure validateFromChainId(fromChainId: Uint64)
+  counter_part_id <- counterpart_chainId;
+  equal = builtin eq counter_part_id fromChainId;
+  match equal with
+  | True =>
+  | False =>
+    e = InvalidFromChainId;
+    ThrowError e
+  end
 end
 
 (* lock amount should not be zero *)
@@ -254,7 +263,6 @@ procedure validateFeeAmount(feeAmount: Uint128, amount: Uint128)
   end
 end
 
-
 procedure validateFromProxy(fromContractAddr: ByStr)
   is_equal = builtin eq zero_bystr fromContractAddr;
   match is_equal with
@@ -262,36 +270,6 @@ procedure validateFromProxy(fromContractAddr: ByStr)
     e = EmptyFromProxy;
     ThrowError e
   | False =>
-  end
-end
-
-procedure ValidateToAssetHash(toAssetHash: ByStr)
-  is_equal = builtin eq zero_bystr toAssetHash;
-  match is_equal with
-  | True =>
-    e = IllegalToAssetHash;
-    ThrowError e
-  | False =>
-  end
-end
-
-procedure ValidateFromProxy(fromContractAddr: ByStr, fromChainId: Uint64)
-  e = { _eventname: "ValidateFromProxy"; fromContractAddr: fromContractAddr; fromChainId: fromChainId };
-  event e;
-  validateFromProxy fromContractAddr;
-  targetAddr_o <- proxy_hash_map[fromChainId];
-  match targetAddr_o with
-  | Some targetAddr =>
-    is_equal = builtin eq targetAddr fromContractAddr;
-    match is_equal with
-    | True =>
-    | False =>
-      e = IllegalFromProxy;
-      ThrowError e
-    end
-  | None =>
-    e = FromProxyNotExist;
-    ThrowError e
   end
 end
 
@@ -395,7 +373,7 @@ procedure CrossChain(toChainId: Uint64, toContract: ByStr, method: ByStr, txData
   send msgs
 end
 
-procedure validateProxyAddrLength(proxyAddr: ByStr)
+procedure validateAddrLength(proxyAddr: ByStr)
   length = builtin strlen proxyAddr;
   is_addr = builtin eq length uint32_20;
   match is_addr with
@@ -406,13 +384,13 @@ procedure validateProxyAddrLength(proxyAddr: ByStr)
   end
 end
 
-(* can be used both for validating targetProxyHash and toAddress *)
-procedure ValidateToAssetHashLength(toAssetHash: ByStr)
-  to_asset_hash_length = builtin strlen toAssetHash;
-  zero_length = builtin eq to_asset_hash_length uint32_zero;
+(* can be used both for validating targetProxyHash and toAddress and fromAssetHash *)
+procedure ValidataHashLength(hash: ByStr)
+  hash_length = builtin strlen hash;
+  zero_length = builtin eq hash_length uint32_zero;
   match zero_length with
   | True =>
-    e = EmptyToAssetHash;
+    e = EmptyHashStr;
     ThrowError e
   | False =>
   end
@@ -420,7 +398,7 @@ end
 
 (* Mark an asset as registered by associating it to a specified Switcheo TradeHub proxy and asset hash*)
 procedure MarkAssetAsRegistered(tokenAddr: ByStr20, proxyAddr: ByStr, toAssetHash: ByStr)
-  validateProxyAddrLength proxyAddr;
+  validateAddrLength proxyAddr;
   exist <- exists register[tokenAddr];
   match exist with
   | True =>
@@ -438,7 +416,7 @@ end
 (* @param proxyAddr: the expected proxy address on Swticheo TradeHub *)
 (* @param toAssetHash: the expected asset hash on Swticheo TradeHub *)
 procedure ValidateAssetRegistration(tokenAddr: ByStr20, proxyAddr: ByStr, toAssetHash: ByStr)
-  validateProxyAddrLength proxyAddr;
+  validateAddrLength proxyAddr;
   x = serialize_proxy_addr_to_asset_hash proxyAddr toAssetHash;
   value = builtin keccak256hash x;
   value_stored_o <- register[tokenAddr];
@@ -468,9 +446,9 @@ procedure lockProcedure(
   feeAmount: Uint256, 
   feeAddr: ByStr
 )
-  validateProxyAddrLength targetProxyHash;
-  ValidateToAssetHashLength toAssetHash;
-  ValidateToAssetHashLength toAddress;
+  validateAddrLength targetProxyHash;
+  ValidataHashLength toAssetHash;
+  ValidataHashLength toAddress;
   amount_uint128_o = builtin to_uint128 amount;
   match amount_uint128_o with
   | Some amount_uint128 =>
@@ -501,6 +479,15 @@ procedure lockProcedure(
   end
 end
 
+(* Perfrom a deposit *)
+(* @param tokenAddr: the address of the token to deposit *)
+(* @param targetProxyHash: the associated proxy hash on Switcheo TrandeHub *)
+(* @param toAddress: the hex version of the Switcheo TradeHub address to deposit to *)
+(* @param toAssetHash: the associated asset hash on Swticheo TradeHub *)
+(* @param feeAddr: the hex version of the Switcheo TradeHub address to send the fee to *)
+(* @param amount: the number of tokens to deposit *)
+(* @param feeAmount: the number of tokens to be used as fees *)
+(* @param callAmount: some tokens may burn an amount before transfer, so we allow a callAmount to support these tokens *)
 transition lock(
   tokenAddr: ByStr20,
   targetProxyHash: ByStr, 
@@ -554,21 +541,47 @@ transition registerAsset(argsBz: ByStr, fromContractAddr: ByStr, fromChainId: Ui
     e = IllegalRegisterAssetArgs;
     ThrowError e
   end
-  
 end
 
-transition BindAssetHash(fromAssetHash: ByStr20, toChainId: Uint64, toAssetHash: ByStr)
-  IsAdmin _sender;
-  asset_map[fromAssetHash][toChainId] := toAssetHash;
-  e = { _eventname: "BindAssetHash" };
-  event e
-end
+(* Perfroms a withdrawal that was initiated on Switcheo TradeHub *)
+(* @param argsBz: the serialized TransferTxArgs *)
+(* @param fromContractAddr: the associated contract address on Swticheo TradeHub *)
+(* @param fromChainId: the originating chainId *)
+transition unlock(
+  argsBz: ByStr,
+  fromContractAddr: ByStr,
+  fromChainId: Uint64
+)
+  IsManagerContract _sender;
+  validateFromChainId fromChainId;
+  transfer_tx_args_o = deserialize_transfer_tx_args argsBz uint32_zero;
+  match transfer_tx_args_o with
+  | Some (TransferTxArgs fromAssetHash toAssetHash toAddress fromAddress amount feeAmount feeAddress n) =>
+    ValidataHashLength fromAssetHash;
+    validateAddrLength toAssetHash;
+    tokenAddress_o = builtin to_bystr20 toAssetHash;
+    toAddress_o = builtin to_bystr20 toAddress;
+    match tokenAddress_o with
+    | Some tokenAddress =>
+      match toAddress_o with
+      | Some toAddress =>
+        ValidateAssetRegistration tokenAddress fromContractAddr fromAssetHash;
+        TransferFromContract tokenAddress toAddress amount;
+        e = { _eventname: "Unlock"; toAssetHash: tokenAddress; toAddressHash: toAddress; amount: amount };
+        event e
+      | None =>
+        e = InvalidUnlockArgs;
+        ThrowError e
+      end
+    | None =>
+      e = InvalidUnlockArgs;
+      ThrowError e
+    end
+  | None =>
+    e = InvalidUnlockArgs;
+    ThrowError e
+  end
 
-transition BindProxyHash(toChainId: Uint64, targetProxyHash: ByStr)
-  IsAdmin _sender;
-  proxy_hash_map[toChainId] := targetProxyHash;
-  e = { _eventname: "BindProxyHash" };
-  event e
 end
 
 transition SetManager(new_manager: ByStr20)
