@@ -49,6 +49,7 @@ type Error =
   | AssetNotRegistered
   | EmptyToAssetHash
   | InvalidFeeAmount
+  | InvalidCallAmount
 
 let make_error =
   fun (result: Error) =>
@@ -73,6 +74,7 @@ let make_error =
       | AssetNotRegistered => Int32 -17
       | EmptyToAssetHash => Int32 -18
       | InvalidFeeAmount => Int32 -19
+      | InvalidCallAmount => Int32 -20
       end
     in
     { _exception: "Error"; code: result_code }
@@ -224,15 +226,10 @@ procedure IsAdmin(initiator: ByStr20)
   end
 end
 
-procedure IsManagerContract(initiator: ByStr20)
-  manager_l <- manager;
-  is_manager = builtin eq manager_l initiator;
-  match is_manager with
-  | True =>
-  | False =>
-    e = ManagerValidationFailed;
-    ThrowError e
-  end
+procedure increaseNonce()
+ old_nonce <- nonce;
+ new_nonce = builtin add old_nonce uint256_one;
+ nonce := new_nonce
 end
 
 (* lock amount should not be zero *)
@@ -245,13 +242,6 @@ procedure validateAmount(amount: Uint128)
   | False =>
   end
 end
-
-procedure increaseNonce()
- old_nonce <- nonce;
- new_nonce = builtin add old_nonce uint256_one;
- nonce := new_nonce
-end
-
 
 (* fee amount must be less that amount *)
 procedure validateFeeAmount(feeAmount: Uint128, amount: Uint128)
@@ -373,7 +363,7 @@ procedure TransferFromContract(toAssetHash: ByStr20, address: ByStr20, amount: U
 end
 
 (* transfer asset from fromAddress to LockProxy contract *)
-procedure TransferToContract(fromAssetHash: ByStr20, amount: Uint128)
+procedure TransferToContract(fromAssetHash: ByStr20, amount: Uint128, callAmount: Uint128)
   (* if people choose to lock native zil, then fromAssetHash should be 0x0000000000000000000000000000000000000000 *)
   is_asset_zil = builtin eq fromAssetHash zero_address;
   match is_asset_zil with
@@ -391,8 +381,8 @@ procedure TransferToContract(fromAssetHash: ByStr20, amount: Uint128)
   | False =>
     (* no accept here, so even some zils is transfered, there is no harm *)
     (* see IncreaseAllowance in ZRC2 *)
-    transferZRC2ToContract fromAssetHash _sender _this_address amount;
-    e = { _eventname: "TransferToContract"; fromAssetHash: fromAssetHash; amount: amount };
+    transferZRC2ToContract fromAssetHash _sender _this_address callAmount;
+    e = { _eventname: "TransferToContract"; fromAssetHash: fromAssetHash; amount: callAmount };
     event e
   end
 end
@@ -413,6 +403,18 @@ procedure validateProxyAddrLength(proxyAddr: ByStr)
   | False =>
     e = IllegalRegisterAssetArgs;
     ThrowError e
+  end
+end
+
+(* can be used both for validating targetProxyHash and toAddress *)
+procedure ValidateToAssetHashLength(toAssetHash: ByStr)
+  to_asset_hash_length = builtin strlen toAssetHash;
+  zero_length = builtin eq to_asset_hash_length uint32_zero;
+  match zero_length with
+  | True =>
+    e = EmptyToAssetHash;
+    ThrowError e
+  | False =>
   end
 end
 
@@ -455,18 +457,6 @@ procedure ValidateAssetRegistration(tokenAddr: ByStr20, proxyAddr: ByStr, toAsse
   end
 end
 
-(* can be used both for validating targetProxyHash and toAddress *)
-procedure validateToAssetHashLength(toAssetHash: ByStr)
-  to_asset_hash_length = builtin strlen toAssetHash;
-  zero_length = builtin eq to_asset_hash_length uint32_zero;
-  match zero_length with
-  | True =>
-    e = EmptyToAssetHash;
-    ThrowError e
-  | False =>
-  end
-end
-
 (* Validates the asset registertion and calls the CCM contract *)
 procedure lockProcedure(
   tokenAddr: ByStr20,
@@ -479,8 +469,8 @@ procedure lockProcedure(
   feeAddr: ByStr
 )
   validateProxyAddrLength targetProxyHash;
-  validateToAssetHashLength toAssetHash;
-  validateToAssetHashLength toAddress;
+  ValidateToAssetHashLength toAssetHash;
+  ValidateToAssetHashLength toAddress;
   amount_uint128_o = builtin to_uint128 amount;
   match amount_uint128_o with
   | Some amount_uint128 =>
@@ -523,54 +513,22 @@ transition lock(
 )
   (* todo handle call amount*)
   amount_uint128_o = builtin to_uint128 amount;
+  call_amount_uint128_o = builtin to_uint128 callAmount;
   match amount_uint128_o with
   | Some amount_uint128 =>
-    TransferToContract tokenAddr amount_uint128;
-    lockProcedure tokenAddr targetProxyHash toAssetHash _sender toAddress amount feeAmount feeAddr
+    match call_amount_uint128_o with
+    | Some call_amount_uint128 =>
+      TransferToContract tokenAddr amount_uint128 call_amount_uint128;
+      lockProcedure tokenAddr targetProxyHash toAssetHash _sender toAddress amount feeAmount feeAddr
+    | None =>
+      e = InvalidCallAmount;
+      ThrowError e
+    end
   | None =>
     e = IllegalAmount;
     ThrowError e
   end
-  
 end
-
-
-(* This function is meant to be invoked by the Zilliqa crosschain management contract *)
-(* then mint a certin amount of tokens to the designated address since a certain amount *)
-(* was burnt from the source chain invoker. *)
-(* @param args: The argument bytes recevied by the zilliqa lock proxy contract, need to be deserialized. *)
-(* based on the way of serialization in the source chain proxy contract. *)
-(* @param fromContractAddr: The source chain contract address. *)
-(* @param fromChainId: The source chain id. *)
-transition unlock(args: ByStr, fromContractAddr: ByStr, fromChainId: Uint64)
-  IsManagerContract _sender;
-  ValidateFromProxy fromContractAddr fromChainId;
-  tx_args_o = deserialize_tx_args args uint32_zero;
-  match tx_args_o with
-  | Some (TxArgs toAssetHash toAddressHash amount) =>
-    (* ValidateToAssetHash toAssetHash; *)
-    toAssetAddress_o = builtin to_bystr20 toAssetHash;
-    toAddress_o = builtin to_bystr20 toAddressHash;
-    match toAssetAddress_o with
-    | Some toAssetAddress =>
-      match toAddress_o with
-      | Some toAddress =>
-        e = { _eventname: "Unlock"; toAssetHash: toAssetAddress; toAddressHash: toAddress; amount: amount };
-        event e;
-        TransferFromContract toAssetAddress toAddress amount
-      | None =>
-        e = ParseToAddressFailed;
-        ThrowError e
-      end
-    | None =>
-      e = ParseToAssetAddressFailed;
-      ThrowError e
-    end
-   
-  | None =>
-  end
-end
-
 
 (* Marks an asset as registered by mapping the asset address to the specified *)
 (* fromContractAddr and assetHash on Swwitcheo TradeHub*)
