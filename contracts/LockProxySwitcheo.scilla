@@ -519,12 +519,13 @@ end
 
 (* Marks an asset as registered by mapping the asset address to the specified *)
 (* fromContractAddr and assetHash on Swwitcheo TradeHub*)
-(* @param argsBz: the serialized  RegisterAssetTxArgs *)
+(* @param args: the serialized  RegisterAssetTxArgs *)
 (* @param fromContractAddr: the associated contract address on Swticheo TradeHub *)
 (* @param fromChainId: the originating chainId *)
-transition registerAsset(argsBz: ByStr, fromContractAddr: ByStr, fromChainId: Uint64)
+transition registerAsset(args: ByStr, fromContractAddr: ByStr, fromChainId: Uint64)
+  IsManagerContract _sender;
   ValidateCounterpartChainId fromChainId;
-  register_asset_tx_args_o = deserialize_register_asset_tx_args argsBz uint32_zero;
+  register_asset_tx_args_o = deserialize_register_asset_tx_args args uint32_zero;
   match register_asset_tx_args_o with
   | Some (RegisterAssetTxArgs assetHash nativeAssetHash) =>
     nativeAssetAddr_o = builtin to_bystr20 nativeAssetHash;
@@ -548,13 +549,13 @@ end
 (* @param fromContractAddr: the associated contract address on Swticheo TradeHub *)
 (* @param fromChainId: the originating chainId *)
 transition unlock(
-  argsBz: ByStr,
+  args: ByStr,
   fromContractAddr: ByStr,
   fromChainId: Uint64
 )
   IsManagerContract _sender;
   validateFromChainId fromChainId;
-  transfer_tx_args_o = deserialize_transfer_tx_args argsBz uint32_zero;
+  transfer_tx_args_o = deserialize_transfer_tx_args args uint32_zero;
   match transfer_tx_args_o with
   | Some (TransferTxArgs fromAssetHash toAssetHash toAddress fromAddress amount feeAmount feeAddress n) =>
     ValidataHashLength fromAssetHash;
