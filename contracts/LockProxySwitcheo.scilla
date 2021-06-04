@@ -507,7 +507,7 @@ transition lock(
   | Some amount_uint128 =>
     match call_amount_uint128_o with
     | Some call_amount_uint128 =>
-      TransferToContract tokenAddr amount_uint128 call_amount_uint128;
+      TransferToContract tokenAddr amount_uint128 amount_uint128;
       lockProcedure tokenAddr targetProxyHash toAssetHash _sender toAddress amount feeAmount feeAddr
     | None =>
       e = InvalidCallAmount;
