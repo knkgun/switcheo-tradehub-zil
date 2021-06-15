@@ -187,7 +187,7 @@ procedure burn(address: ByStr20, amount: Uint128)
     new_from_bal = builtin sub bal amount;
     balances[address] := new_from_bal
   | False =>
-    err = CodeInsufficientAllowance;
+    err = CodeInsufficientFunds;
     ThrowError err
   end
 end
