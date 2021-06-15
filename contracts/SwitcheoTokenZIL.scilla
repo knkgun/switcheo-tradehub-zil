@@ -22,8 +22,8 @@ type Error =
 | CodeIsSender
 | CodeInsufficientFunds
 | CodeInsufficientAllowance
-| LockProxyInitialized
-| AddressZero
+| CodeIsNotMinter
+| CodeInvalidAddress
 
 let make_error =
   fun (result : Error) =>
@@ -32,8 +32,8 @@ let make_error =
       | CodeIsSender              => Int32 -1
       | CodeInsufficientFunds     => Int32 -2
       | CodeInsufficientAllowance => Int32 -3
-      | LockProxyInitialized      => Int32 -4
-      | AddressZero               => Int32 -5
+      | CodeIsNotMinter           => Int32 -4
+      | CodeInvalidAddress        => Int32 -5
       end
     in
     { _exception : "Error"; code : result_code }
@@ -74,10 +74,11 @@ let sender_is_lp =
 contract FungibleToken
 (
   contract_owner: ByStr20,
-  name : String,
+  name: String,
   symbol: String,
   decimals: Uint32,
-  init_supply : Uint128
+  init_supply: Uint128,
+  init_minter: ByStr20
 )
 
 (* Mutable fields *)
@@ -91,7 +92,7 @@ field balances: Map ByStr20 Uint128
 field allowances: Map ByStr20 (Map ByStr20 Uint128) 
   = Emp ByStr20 (Map ByStr20 Uint128)
 
-field lock_proxy_address: Option ByStr20 = None {ByStr20}
+field minter: ByStr20 = init_minter
 
 (**************************************)
 (*             Procedures             *)
@@ -135,29 +136,30 @@ procedure AuthorizedMoveIfSufficientBalance(from: ByStr20, to: ByStr20, amount: 
   end
 end
 
-procedure Initialized()
-  lockProxy_o <- lock_proxy_address;
-  match lockProxy_o with
-  | Some lock_proxy =>
-    err = LockProxyInitialized;
-    ThrowError err
-  | None =>
-  end
-end
-
-procedure addrNotZero(address: ByStr20)
+procedure validateAddress(address: ByStr20)
   is_zero_addr = builtin eq address zero_addr;
   match is_zero_addr with
   | True =>
-    err = AddressZero;
+    err = CodeInvalidAddress;
     ThrowError err
   | False =>
   end
 end
 
+procedure isMinter()
+  minter_l <- minter;
+  is_minter = builtin eq _sender minter_l;
+  match is_minter with
+  | True =>
+  | False =>
+    err = CodeIsNotMinter;
+    ThrowError err
+  end
+end
+
 (* @dev Creates amount tokens and assigns them to account, increasing the tital supply *)
 procedure mint(address: ByStr20, amount: Uint128)
-  addrNotZero address;
+  validateAddress address;
   current_supply <- total_supply;
   new_supply = builtin add current_supply amount;
   total_supply := new_supply;
@@ -170,42 +172,23 @@ procedure mint(address: ByStr20, amount: Uint128)
   balances[address] := new_bal
 end
 
-procedure HandleMint(sender: ByStr20, amount: Uint128)
-  lp_o <- lock_proxy_address;
-  is_lp = sender_is_lp lp_o _sender;
-  match is_lp with
-  | True =>
-    mint sender amount
-  | False =>
-  end
-end
-
 (* @dev Destorys amount token from address, reducing the total supply *)
 procedure burn(address: ByStr20, amount: Uint128)
-   addrNotZero address;
-   current_supply <- total_supply;
-   new_supply = builtin sub current_supply amount;
-   total_supply := new_supply;
+  validateAddress address;
+  current_supply <- total_supply;
+  new_supply = builtin sub current_supply amount;
+  total_supply := new_supply;
 
-   o_from_bal <- balances[address];
-   bal = get_val o_from_bal;
-   can_do = uint128_le amount bal;
-   match can_do with
-   | True =>
-     new_from_bal = builtin sub bal amount;
-     balances[address] := new_from_bal
-     (* should never happen since the previously check *)
-   | False => throw
-   end
-end
-
-procedure HandleBurn(receipt: ByStr20, amount: Uint128)
-  lp_o <- lock_proxy_address;
-  is_lp = sender_is_lp lp_o receipt;
-  match is_lp with
+  o_from_bal <- balances[address];
+  bal = get_val o_from_bal;
+  can_do = uint128_le amount bal;
+  match can_do with
   | True =>
-    burn receipt amount
+    new_from_bal = builtin sub bal amount;
+    balances[address] := new_from_bal
   | False =>
+    err = CodeInsufficientAllowance;
+    ThrowError err
   end
 end
 
@@ -249,9 +232,7 @@ end
 (* @param to:  Address of the recipient whose balance is increased.                 *)
 (* @param amount:     Amount of tokens to be sent.                                  *)
 transition Transfer(to: ByStr20, amount: Uint128)
-  HandleMint _sender amount;
   AuthorizedMoveIfSufficientBalance _sender to amount;
-  HandleBurn to amount;
   e = {_eventname : "TransferSuccess"; sender : _sender; recipient : to; amount : amount};
   event e;
   (* Prevent sending to a contract address that does not support transfers of token *)
@@ -274,9 +255,7 @@ transition TransferFrom(from: ByStr20, to: ByStr20, amount: Uint128)
   can_do = uint128_le amount allowed;
   match can_do with
   | True =>
-    HandleMint from amount;
     AuthorizedMoveIfSufficientBalance from to amount;
-    HandleBurn to amount;
     e = {_eventname : "TransferFromSuccess"; initiator : _sender; sender : from; recipient : to; amount : amount};
     event e;
     new_allowed = builtin sub allowed amount;
@@ -294,8 +273,18 @@ transition TransferFrom(from: ByStr20, to: ByStr20, amount: Uint128)
   end
 end
 
-transition Initalize(address: ByStr20)
-  Initialized;
-  addr = some_addr address;
-  lock_proxy_address := addr
+(* @dev: Mint new tokens. Only contract_owner can mint.                      *)
+(* @param recipient: Address of the recipient whose balance is to increase.  *)
+(* @param amount:    Number of tokens to be minted.                          *)
+transition Mint(recipient: ByStr20, amount: Uint128)
+  isMinter;
+  mint recipient amount
+end
+
+(* @dev: Burn existing tokens. Only contract_owner can burn.                      *)
+(* @param burn_account: Address of the token_owner whose balance is to decrease.  *)
+(* @param amount:       Number of tokens to be burned.                            *)
+transition Burn(burn_account: ByStr20, amount: Uint128)
+  isMinter;
+  burn burn_account amount
 end
