@@ -278,7 +278,18 @@ end
 (* @param amount:    Number of tokens to be minted.                          *)
 transition Mint(recipient: ByStr20, amount: Uint128)
   isMinter;
-  mint recipient amount
+  mint recipient amount;
+  minter_addr <- minter;
+  e = { _eventname : "Minted"; minter : minter_addr; recipient : recipient; amount : amount };
+  event e;
+  (* Dummy callback to prevent invalid recipient contract. *)
+  msg_to_recipient = { _tag: "RecipientAcceptMint"; _recipient : recipient; _amount: zero; 
+                      minter: minter_addr; recipient: recipient; amount: amount };
+  (* Provide the sender the status of the mint. *)
+  msg_call_back = { _tag: "MintSuccessCallBack"; _recipient : _sender; _amount: zero;
+                  minter: minter_addr; recipient: recipient; amount: amount };
+  msgs = two_msgs msg_to_recipient msg_call_back;
+  send msgs
 end
 
 (* @dev: Burn existing tokens. Only contract_owner can burn.                      *)
@@ -286,5 +297,13 @@ end
 (* @param amount:       Number of tokens to be burned.                            *)
 transition Burn(burn_account: ByStr20, amount: Uint128)
   isMinter;
-  burn burn_account amount
+  burn burn_account amount;
+  minter_addr <- minter;
+  e = { _eventname : "Burnt"; burner : minter_addr; burn_account : burn_account; amount : amount };
+  event e;
+  (* Provide the sender the status of the burn. *)
+  msg_call_back = { _tag: "BurnSuccessCallBack"; _recipient : _sender; _amount: zero;
+                  burner: minter_addr; burn_account: burn_account; amount: amount };
+  msgs = one_msg msg_call_back;
+  send msgs
 end
