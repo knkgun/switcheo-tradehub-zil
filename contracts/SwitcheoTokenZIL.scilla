@@ -24,6 +24,7 @@ type Error =
 | CodeInsufficientAllowance
 | CodeIsNotMinter
 | CodeInvalidAddress
+| CodeIsNotSelf
 
 let make_error =
   fun (result : Error) =>
@@ -34,6 +35,7 @@ let make_error =
       | CodeInsufficientAllowance => Int32 -3
       | CodeIsNotMinter           => Int32 -4
       | CodeInvalidAddress        => Int32 -5
+      | CodeIsNotSelf             => Int32 -6
       end
     in
     { _exception : "Error"; code : result_code }
@@ -56,16 +58,6 @@ let get_val =
 let some_addr = 
   fun (addr: ByStr20) =>
   Some {ByStr20} addr
-
-let sender_is_lp =
-  fun (lp_o: Option ByStr20) =>
-  fun (sender: ByStr20) =>
-  match lp_o with
-  | Some lp =>
-    let is_lp = builtin eq lp sender in
-    is_lp
-  | None => true
-  end
 
 (***************************************************)
 (*             The contract definition             *)
@@ -157,6 +149,16 @@ procedure isMinter()
   end
 end
 
+procedure isSelf()
+  is_self = builtin eq _sender _this_address;
+  match is_self with
+  | True =>
+  | False =>
+    err = CodeIsNotSelf;
+    ThrowError err
+  end
+end
+
 (* @dev Creates amount tokens and assigns them to account, increasing the tital supply *)
 procedure mint(address: ByStr20, amount: Uint128)
   validateAddress address;
@@ -191,6 +193,31 @@ procedure burn(address: ByStr20, amount: Uint128)
     ThrowError err
   end
 end
+
+procedure handleMint(address: ByStr20, amount: Uint128)
+  m <- minter;
+  is_minter = builtin eq m address;
+  match is_minter with
+  | True =>
+    mint address amount
+  | False =>
+  end
+  
+end
+
+procedure handleBurn(address: ByStr20, amount: Uint128)
+  m <- minter;
+  is_minter = builtin eq m address;
+  match is_minter with
+  | True =>
+    msg_to_burn = {_tag : "Burn"; _recipient : _this_address; _amount : zero; 
+                   sender : _sender; burn_account : address; amount : amount};
+    msgs = one_msg msg_to_burn;
+    send msgs
+  | False =>
+  end
+end
+
 
 (***************************************)
 (*             Transitions             *)
@@ -232,7 +259,9 @@ end
 (* @param to:  Address of the recipient whose balance is increased.                 *)
 (* @param amount:     Amount of tokens to be sent.                                  *)
 transition Transfer(to: ByStr20, amount: Uint128)
+  handleMint _sender amount;
   AuthorizedMoveIfSufficientBalance _sender to amount;
+  handleBurn to amount;
   e = {_eventname : "TransferSuccess"; sender : _sender; recipient : to; amount : amount};
   event e;
   (* Prevent sending to a contract address that does not support transfers of token *)
@@ -255,7 +284,9 @@ transition TransferFrom(from: ByStr20, to: ByStr20, amount: Uint128)
   can_do = uint128_le amount allowed;
   match can_do with
   | True =>
+    handleMint _sender amount;
     AuthorizedMoveIfSufficientBalance from to amount;
+    handleBurn to amount;
     e = {_eventname : "TransferFromSuccess"; initiator : _sender; sender : from; recipient : to; amount : amount};
     event e;
     new_allowed = builtin sub allowed amount;
@@ -273,30 +304,11 @@ transition TransferFrom(from: ByStr20, to: ByStr20, amount: Uint128)
   end
 end
 
-(* @dev: Mint new tokens. Only contract_owner can mint.                      *)
-(* @param recipient: Address of the recipient whose balance is to increase.  *)
-(* @param amount:    Number of tokens to be minted.                          *)
-transition Mint(recipient: ByStr20, amount: Uint128)
-  isMinter;
-  mint recipient amount;
-  minter_addr <- minter;
-  e = { _eventname : "Minted"; minter : minter_addr; recipient : recipient; amount : amount };
-  event e;
-  (* Dummy callback to prevent invalid recipient contract. *)
-  msg_to_recipient = { _tag: "RecipientAcceptMint"; _recipient : recipient; _amount: zero; 
-                      minter: minter_addr; recipient: recipient; amount: amount };
-  (* Provide the sender the status of the mint. *)
-  msg_call_back = { _tag: "MintSuccessCallBack"; _recipient : _sender; _amount: zero;
-                  minter: minter_addr; recipient: recipient; amount: amount };
-  msgs = two_msgs msg_to_recipient msg_call_back;
-  send msgs
-end
-
 (* @dev: Burn existing tokens. Only contract_owner can burn.                      *)
 (* @param burn_account: Address of the token_owner whose balance is to decrease.  *)
 (* @param amount:       Number of tokens to be burned.                            *)
 transition Burn(burn_account: ByStr20, amount: Uint128)
-  isMinter;
+  isSelf;
   burn burn_account amount;
   minter_addr <- minter;
   e = { _eventname : "Burnt"; burner : minter_addr; burn_account : burn_account; amount : amount };
@@ -306,4 +318,7 @@ transition Burn(burn_account: ByStr20, amount: Uint128)
                   burner: minter_addr; burn_account: burn_account; amount: amount };
   msgs = one_msg msg_call_back;
   send msgs
+end
+
+transition BurnSuccessCallBack(burner: ByStr20, burn_account: ByStr20, amount: Uint128)
 end
