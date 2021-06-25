@@ -65,7 +65,6 @@ let some_addr =
 
 contract FungibleToken
 (
-  contract_owner: ByStr20,
   name: String,
   symbol: String,
   decimals: Uint32,
@@ -77,9 +76,7 @@ contract FungibleToken
 
 field total_supply : Uint128 = init_supply
 
-field balances: Map ByStr20 Uint128 
-  = let emp_map = Emp ByStr20 Uint128 in
-    builtin put emp_map contract_owner init_supply
+field balances: Map ByStr20 Uint128 = Emp ByStr20 Uint128
 
 field allowances: Map ByStr20 (Map ByStr20 Uint128) 
   = Emp ByStr20 (Map ByStr20 Uint128)
@@ -304,7 +301,7 @@ transition TransferFrom(from: ByStr20, to: ByStr20, amount: Uint128)
   end
 end
 
-(* @dev: Burn existing tokens. Only contract_owner can burn.                      *)
+(* @dev: Burn existing tokens. Only contract self can burn.                      *)
 (* @param burn_account: Address of the token_owner whose balance is to decrease.  *)
 (* @param amount:       Number of tokens to be burned.                            *)
 transition Burn(burn_account: ByStr20, amount: Uint128)
