@@ -281,7 +281,6 @@ transition TransferFrom(from: ByStr20, to: ByStr20, amount: Uint128)
   can_do = uint128_le amount allowed;
   match can_do with
   | True =>
-    handleMint _sender amount;
     AuthorizedMoveIfSufficientBalance from to amount;
     handleBurn to amount;
     e = {_eventname : "TransferFromSuccess"; initiator : _sender; sender : from; recipient : to; amount : amount};
