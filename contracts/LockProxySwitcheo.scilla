@@ -487,7 +487,6 @@ end
 (* @param feeAddr: the hex version of the Switcheo TradeHub address to send the fee to *)
 (* @param amount: the number of tokens to deposit *)
 (* @param feeAmount: the number of tokens to be used as fees *)
-(* @param callAmount: some tokens may burn an amount before transfer, so we allow a callAmount to support these tokens *)
 transition lock(
   tokenAddr: ByStr20,
   targetProxyHash: ByStr, 
