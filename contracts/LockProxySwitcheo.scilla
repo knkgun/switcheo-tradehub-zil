@@ -42,7 +42,6 @@ type Error =
   | AssetNotRegistered
   | EmptyHashStr
   | InvalidFeeAmount
-  | InvalidCallAmount
   | InvalidFromChainId
   | InvalidUnlockArgs
   | DeserializeRegisterAssetArgsFail
@@ -63,10 +62,9 @@ let make_error =
       | AssetNotRegistered => Int32 -10
       | EmptyHashStr => Int32 -11
       | InvalidFeeAmount => Int32 -12
-      | InvalidCallAmount => Int32 -13
-      | InvalidFromChainId => Int32 -14
-      | InvalidUnlockArgs => Int32 -15
-      | DeserializeRegisterAssetArgsFail => Int32 -16
+      | InvalidFromChainId => Int32 -13
+      | InvalidUnlockArgs => Int32 -14
+      | DeserializeRegisterAssetArgsFail => Int32 -15
       end
     in
     { _exception: "Error"; code: result_code }
