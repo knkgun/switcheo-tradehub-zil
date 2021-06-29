@@ -343,7 +343,7 @@ procedure TransferFromContract(toAssetHash: ByStr20, address: ByStr20, amount: U
 end
 
 (* transfer asset from fromAddress to LockProxy contract *)
-procedure TransferToContract(fromAssetHash: ByStr20, amount: Uint128, callAmount: Uint128)
+procedure TransferToContract(fromAssetHash: ByStr20, amount: Uint128)
   (* if people choose to lock native zil, then fromAssetHash should be 0x0000000000000000000000000000000000000000 *)
   is_asset_zil = builtin eq fromAssetHash zero_address;
   match is_asset_zil with
@@ -361,8 +361,8 @@ procedure TransferToContract(fromAssetHash: ByStr20, amount: Uint128, callAmount
   | False =>
     (* no accept here, so even some zils is transfered, there is no harm *)
     (* see IncreaseAllowance in ZRC2 *)
-    transferZRC2ToContract fromAssetHash _sender _this_address callAmount;
-    e = { _eventname: "TransferToContract"; fromAssetHash: fromAssetHash; amount: callAmount };
+    transferZRC2ToContract fromAssetHash _sender _this_address amount;
+    e = { _eventname: "TransferToContract"; fromAssetHash: fromAssetHash; amount: amount };
     event e
   end
 end
@@ -497,22 +497,13 @@ transition lock(
   toAssetHash: ByStr,
   feeAddr: ByStr,
   amount: Uint256,
-  feeAmount: Uint256,
-  callAmount: Uint256
+  feeAmount: Uint256
 )
-  (* todo handle call amount*)
   amount_uint128_o = builtin to_uint128 amount;
-  call_amount_uint128_o = builtin to_uint128 callAmount;
   match amount_uint128_o with
   | Some amount_uint128 =>
-    match call_amount_uint128_o with
-    | Some call_amount_uint128 =>
-      TransferToContract tokenAddr amount_uint128 amount_uint128;
-      lockProcedure tokenAddr targetProxyHash toAssetHash _sender toAddress amount feeAmount feeAddr
-    | None =>
-      e = InvalidCallAmount;
-      ThrowError e
-    end
+    TransferToContract tokenAddr amount_uint128;
+    lockProcedure tokenAddr targetProxyHash toAssetHash _sender toAddress amount feeAmount feeAddr
   | None =>
     e = IllegalAmount;
     ThrowError e
