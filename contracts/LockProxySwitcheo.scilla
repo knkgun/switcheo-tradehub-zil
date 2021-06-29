@@ -554,6 +554,7 @@ transition unlock(
   | Some (TransferTxArgs fromAssetHash toAssetHash toAddress fromAddress amount feeAmount feeAddress n) =>
     ValidataHashLength fromAssetHash;
     validateAddrLength toAssetHash;
+    validateAddrLength toAddress;
     tokenAddress_o = builtin to_bystr20 toAssetHash;
     toAddress_o = builtin to_bystr20 toAddress;
     match tokenAddress_o with
