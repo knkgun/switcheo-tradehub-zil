@@ -22,7 +22,6 @@ type Error =
 | CodeIsSender
 | CodeInsufficientFunds
 | CodeInsufficientAllowance
-| CodeIsNotMinter
 | CodeInvalidAddress
 | CodeIsNotSelf
 
@@ -33,9 +32,8 @@ let make_error =
       | CodeIsSender              => Int32 -1
       | CodeInsufficientFunds     => Int32 -2
       | CodeInsufficientAllowance => Int32 -3
-      | CodeIsNotMinter           => Int32 -4
-      | CodeInvalidAddress        => Int32 -5
-      | CodeIsNotSelf             => Int32 -6
+      | CodeInvalidAddress        => Int32 -4
+      | CodeIsNotSelf             => Int32 -5
       end
     in
     { _exception : "Error"; code : result_code }
@@ -81,7 +79,7 @@ field balances: Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field allowances: Map ByStr20 (Map ByStr20 Uint128) 
   = Emp ByStr20 (Map ByStr20 Uint128)
 
-field minter: ByStr20 = init_lockproxy
+field lock_proxy: ByStr20 = init_lockproxy
 
 (**************************************)
 (*             Procedures             *)
@@ -135,17 +133,6 @@ procedure validateAddress(address: ByStr20)
   end
 end
 
-procedure isMinter()
-  minter_l <- minter;
-  is_minter = builtin eq _sender minter_l;
-  match is_minter with
-  | True =>
-  | False =>
-    err = CodeIsNotMinter;
-    ThrowError err
-  end
-end
-
 procedure isSelf()
   is_self = builtin eq _sender _this_address;
   match is_self with
@@ -192,9 +179,9 @@ procedure burn(address: ByStr20, amount: Uint128)
 end
 
 procedure handleMint(address: ByStr20, amount: Uint128)
-  m <- minter;
-  is_minter = builtin eq m address;
-  match is_minter with
+  lp <- lock_proxy;
+  is_lp = builtin eq lp address;
+  match is_lp with
   | True =>
     mint address amount
   | False =>
@@ -203,9 +190,9 @@ procedure handleMint(address: ByStr20, amount: Uint128)
 end
 
 procedure handleBurn(address: ByStr20, amount: Uint128)
-  m <- minter;
-  is_minter = builtin eq m address;
-  match is_minter with
+  lp <- lock_proxy;
+  is_lp = builtin eq lp address;
+  match is_lp with
   | True =>
     msg_to_burn = {_tag : "Burn"; _recipient : _this_address; _amount : zero; 
                    burn_account : address; amount : amount};
@@ -306,12 +293,12 @@ end
 transition Burn(burn_account: ByStr20, amount: Uint128)
   isSelf;
   burn burn_account amount;
-  minter_addr <- minter;
-  e = { _eventname : "Burnt"; burner : minter_addr; burn_account : burn_account; amount : amount };
+  lp <- lock_proxy;
+  e = { _eventname : "Burnt"; burner : lp; burn_account : burn_account; amount : amount };
   event e;
   (* Provide the sender the status of the burn. *)
   msg_call_back = { _tag: "BurnSuccessCallBack"; _recipient : _sender; _amount: zero;
-                  burner: minter_addr; burn_account: burn_account; amount: amount };
+                  burner: lp; burn_account: burn_account; amount: amount };
   msgs = one_msg msg_call_back;
   send msgs
 end
