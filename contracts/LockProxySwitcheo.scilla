@@ -458,15 +458,15 @@ procedure lockProcedure(
     | Some fee_amount_uint128 =>
       validateFeeAmount fee_amount_uint128 amount_uint128;
       ValidateAssetRegistration tokenAddr targetProxyHash toAssetHash;
-      from_asset_hash = builtin to_bystr tokenAddr;
-      from_address = builtin to_bystr fromAddr;
+      fromAssetHash = builtin to_bystr tokenAddr;
+      fromAddress = builtin to_bystr fromAddr;
       increaseNonce;
       n <- nonce;
-      transfer_tx_args = TransferTxArgs from_asset_hash toAssetHash toAddress from_address amount feeAmount feeAddr n;
+      transfer_tx_args = TransferTxArgs fromAssetHash toAssetHash toAddress fromAddress amount feeAmount feeAddr n;
       tx_data = serialize_transfer_tx_args transfer_tx_args;
       counterpartChainId <- counterpart_chainId;
       CrossChain counterpartChainId targetProxyHash unlock tx_data;
-      e = { _eventname: "Lock"; fromAssetHash: from_asset_hash; fromAddress: from_address; toChainId: counterpartChainId; 
+      e = { _eventname: "Lock"; fromAssetHash: fromAssetHash; fromAddress: fromAddress; toChainId: counterpartChainId; 
           toAssetHash: toAssetHash; toAddress: toAddress; amount: amount; feeAmount: feeAmount; tx_data: tx_data};
       event e
     | None =>
