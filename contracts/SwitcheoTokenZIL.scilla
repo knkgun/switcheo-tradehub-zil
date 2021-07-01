@@ -69,7 +69,7 @@ contract FungibleToken
   symbol: String,
   decimals: Uint32,
   init_supply: Uint128,
-  init_minter: ByStr20
+  init_lockproxy: ByStr20
 )
 
 (* Mutable fields *)
@@ -81,7 +81,7 @@ field balances: Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field allowances: Map ByStr20 (Map ByStr20 Uint128) 
   = Emp ByStr20 (Map ByStr20 Uint128)
 
-field minter: ByStr20 = init_minter
+field minter: ByStr20 = init_lockproxy
 
 (**************************************)
 (*             Procedures             *)
