@@ -65,6 +65,7 @@ contract FungibleToken
 (
   name: String,
   symbol: String,
+  contract_owner: ByStr20,
   decimals: Uint32,
   init_supply: Uint128,
   init_lockproxy: ByStr20
