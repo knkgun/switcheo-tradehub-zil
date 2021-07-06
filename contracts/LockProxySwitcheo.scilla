@@ -563,7 +563,7 @@ transition unlock(
       | Some toAddress =>
         ValidateAssetRegistration tokenAddress fromContractAddr fromAssetHash;
         TransferFromContract tokenAddress toAddress amount;
-        e = { _eventname: "Unlock"; toAssetHash: tokenAddress; toAddressHash: toAddress; amount: amount };
+        e = { _eventname: "Unlock"; toAssetHash: tokenAddress; toAddressHash: toAddress; amount: amount; txArgs: args };
         event e
       | None =>
         e = InvalidUnlockArgs;
