@@ -457,7 +457,7 @@ procedure lockProcedure(
     match fee_amount_uint128_o with
     | Some fee_amount_uint128 =>
       validateFeeAmount fee_amount_uint128 amount_uint128;
-      ValidateAssetRegistration tokenAddr targetProxyHash toAssetHash;
+      (* ValidateAssetRegistration tokenAddr targetProxyHash toAssetHash; *)
       fromAssetHash = builtin to_bystr tokenAddr;
       fromAddress = builtin to_bystr fromAddr;
       increaseNonce;
@@ -499,6 +499,8 @@ transition lock(
   amount_uint128_o = builtin to_uint128 amount;
   match amount_uint128_o with
   | Some amount_uint128 =>
+    e = { _eventname: "lock"; amount: amount_uint128 };
+    event e;
     TransferToContract tokenAddr amount_uint128;
     lockProcedure tokenAddr targetProxyHash toAssetHash _sender toAddress amount feeAmount feeAddr
   | None =>
