@@ -101,7 +101,8 @@ func main() {
 func bug() {
 	bech32Addr := ""
 	prikey := ""
-	url := "https://dev-api.zilliqa.com"
+	url := ""
+	zrc2base16 := "0x...."
 
 	wallet := account.NewWallet()
 	wallet.AddByPrivateKey(prikey)
@@ -170,7 +171,7 @@ func bug() {
 		{
 			"tokenAddr",
 			"ByStr20",
-			"0xdce1262e3f9b987ec7e7008da8f1af837f7db2ed",
+			zrc2base16,
 		},
 		{
 			"targetProxyHash",
