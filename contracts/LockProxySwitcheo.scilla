@@ -580,6 +580,12 @@ transition unlock(
 
 end
 
+transition AddFunds()
+  accept;
+  e = { _eventname : "Funds deposit "; funder : _sender };
+  event e
+end
+
 transition SetManager(new_manager: ByStr20)
   IsAdmin _sender;
   manager := new_manager
