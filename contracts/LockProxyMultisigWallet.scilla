@@ -82,6 +82,8 @@ type CalleeTransaction =
 | UpdateAdmin of ByStr20
 (* ClaimAdmin() *)
 | ClaimAdmin
+(* Transfer(to: ByStr20, amount: Uint128) *)
+| TransferZRC2 of ByStr20 Uint128
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -142,8 +144,15 @@ let custom_transaction_msg_as_list =
         (* ClaimAdmin() *)
       | ClaimAdmin => 
         {_recipient: calleeContract;
-        _tag: "ClaimAdmin";
-        _amount: Uint128 0}
+         _tag: "ClaimAdmin";
+         _amount: Uint128 0}
+        (* Transfer(to: ByStr20, amount: Uint128) *)
+      | TransferZRC2 to amount =>
+        {_recipient: calleeContract;
+         _tag: "Transfer";
+         _amount: Uint128 0;
+         to: to;
+         amount: amount}
       end
     in
     one_msg msg
@@ -362,6 +371,12 @@ transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
   SubmitCustomTransaction calleeContract transaction
 end
 
+(* Submit a new Transfer transaction for future signoff *)
+(* calleeContract should be ZRC2 address*)
+transition SubmitCustomTransferZRC2Transaction(calleeContract: ByStr20, to: ByStr20, amount: Uint128)
+  transaction = TransferZRC2 to amount;
+  SubmitCustomTransaction calleeContract transaction
+end
 (* Sign off on an existing transaction *)
 transition SignTransaction (transactionId : Uint32)
   (* Only owners are allowed to sign off transactions *)
@@ -511,4 +526,7 @@ transition AddFunds ()
 end
 
 transition RecipientAcceptTransferFrom(initiator: ByStr20, sender: ByStr20, recipient: ByStr20, amount: Uint128)
+end
+
+transition TransferFromSuccessCallBack(initiator: ByStr20, sender: ByStr20, recipient: ByStr20, amount: Uint128)
 end
