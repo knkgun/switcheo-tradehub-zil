@@ -502,3 +502,13 @@ transition ExecuteTransaction (transactionId : Uint32)
     end
   end
 end
+
+(* Add native funds to wallet *)
+transition AddFunds ()
+  accept;
+  e = { _eventname: "FundsAdded"; sender: _sender; amount : _amount};
+  event e
+end
+
+transition RecipientAcceptTransferFrom(initiator: ByStr20, sender: ByStr20, recipient: ByStr20, amount: Uint128)
+end
