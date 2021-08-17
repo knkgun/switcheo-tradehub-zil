@@ -672,7 +672,7 @@ transition unlock(
   end
 end
 
-(* @dev: Withdraws tokens or ZIL from the contract to the admin.    *)
+(* @dev: Emergency withdrawal of ZRC-2 tokens or ZIL from the contract to the admin.    *)
 (* @param coin: The amount and type of coin to withdraw.            *)
 transition Withdraw(coin : Coin)
   isPaused;
