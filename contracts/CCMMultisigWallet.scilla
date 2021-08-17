@@ -91,6 +91,13 @@ type CalleeTransaction =
 | UpdateAdmin of ByStr20
 (* ClaimAdmin() *)
 | ClaimAdmin
+(* PopulateWhiteListFromContract(addr: ByStr20, val: Bool) *)
+| PopulateWhiteListFromContract of ByStr20 Bool
+(* PopulateWhiteListToContract(addr: ByStr20, val: Bool) *)
+| PopulateWhiteListToContract of ByStr20 Bool
+(* PopulateWhiteListMethod(method: String, val: Bool) *)
+| PopulateWhiteListMethod of String Bool
+
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -170,6 +177,27 @@ let custom_transaction_msg_as_list =
         {_recipient: calleeContract;
         _tag: "ClaimAdmin";
         _amount: Uint128 0}
+        (* PopulateWhiteListFromContract(addr: ByStr20, val: Bool) *)
+      | PopulateWhiteListFromContract addr val =>
+        {_recipient: calleeContract;
+        _tag: "PopulateWhiteListFromContract";
+        _amount: Uint128 0;
+        addr: addr;
+        val: val}
+      (* PopulateWhiteListToContract(addr: ByStr20, val: Bool) *)
+      | PopulateWhiteListToContract addr val =>
+        {_recipient: calleeContract;
+        _tag: "PopulateWhiteListToContract";
+        _amount: Uint128 0;
+        addr: addr;
+        val: val}
+      (* PopulateWhiteListMethod(method: String, val: Bool) *)
+      | PopulateWhiteListMethod method val =>
+        {_recipient: calleeContract;
+        _tag: "PopulateWhiteListMethod";
+        _amount: Uint128 0;
+        method: method;
+        val: val}
       end
     in
     one_msg msg
@@ -412,6 +440,22 @@ end
 (* Submit a new ClaimAdmin transaction for future signoff *)
 transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
   transaction = ClaimAdmin;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateWhiteListFromContractTransaction(calleeContract: ByStr20, addr: ByStr20, val: Bool)
+  transaction = PopulateWhiteListFromContract addr val;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateWhiteListToContractTransaction(calleeContract: ByStr20, addr: ByStr20, val: Bool)
+  transaction = PopulateWhiteListToContract addr val;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+
+transition SubmitCustomPopulateWhiteListMethodTransaction(calleeContract: ByStr20, method: String, val: Bool)
+  transaction = PopulateWhiteListMethod method val;
   SubmitCustomTransaction calleeContract transaction
 end
 

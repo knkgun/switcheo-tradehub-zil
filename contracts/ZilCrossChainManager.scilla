@@ -535,3 +535,22 @@ transition VerifyHeaderAndExecuteTx(proof: Proof, rawHeader: ByStr, headerProof:
      ThrowError e
   end
 end
+
+
+transition PopulateWhiteListFromContract(addr: ByStr20, val: Bool, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  whiteListFromContract[addr] := val
+end
+
+transition PopulateWhiteListToContract(addr: ByStr20, val: Bool, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  whiteListToContract[addr] := val
+end
+
+transition PopulateWhiteListMethod(method: String, val: Bool, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  whiteListMethod[method] := val
+end
