@@ -33,6 +33,9 @@ type Error =
   | ProxyValidationFailed
   | StagingAdminValidationFailed
   | StagingAdminNotExist
+  | InvalidFromContract
+  | InvalidToContract
+  | InvalidMethod
 
 let make_error =
   fun (result: Error) =>
@@ -55,6 +58,9 @@ let make_error =
       | ProxyValidationFailed => Int32 -15
       | StagingAdminValidationFailed => Int32 -16
       | StagingAdminNotExist => Int32 -17
+      | InvalidFromContract => Int32 -18
+      | InvalidToContract => Int32 -19
+      | InvalidMethod => Int32 -20
       end
     in
     { _exception: "Error"; code: result_code }
@@ -88,7 +94,9 @@ field zilToPolyTxHashIndex: Uint256 = Uint256 0
 field fromChainTxExist : Map Uint64 (Map ByStr32 Unit) = Emp Uint64 (Map ByStr32 Unit)
 field contractadmin: ByStr20  = init_admin
 field stagingcontractadmin: Option ByStr20 = None {ByStr20}
-
+field whiteListFromContract: Map ByStr20 Bool = Emp ByStr20 Bool
+field whiteListToContract: Map ByStr20 Bool = Emp ByStr20 Bool
+field whiteListMethod: Map String Bool = Emp String Bool
 
 (* Procedures *)
 
@@ -145,6 +153,38 @@ procedure verifyPubkeysAndUpdate(pubkeys: List Pubkey, h_nextBookkeeper: ByStr20
     end
 end
 
+procedure validToContract(addr: ByStr20)
+  val_opt <- whiteListToContract[addr];
+  match val_opt with
+  | Some val =>
+    match val with
+    | True =>
+    | False =>
+      e = InvalidToContract;
+      ThrowError e
+    end
+  | None => 
+    e = InvalidToContract;
+    ThrowError e
+  end
+end
+
+procedure validMethod(method: String)
+  val_opt <- whiteListMethod[method];
+  match val_opt with
+  | Some val =>
+    match val with
+    | True =>
+    | False =>
+      e = InvalidMethod;
+      ThrowError e
+    end
+  | None => 
+    e = InvalidMethod;
+    ThrowError e
+  end
+end
+
 procedure executeCrossChainTxn (txparam: TxParam, fromChainId: Uint64, crossChainTxHash: ByStr)
   match txparam with
   | TxParam txHash crossChainID fromContract toChainID toContract method args =>
@@ -154,7 +194,9 @@ procedure executeCrossChainTxn (txparam: TxParam, fromChainId: Uint64, crossChai
       toContractAddr_o = builtin to_bystr20 toContract;
       match toContractAddr_o with
       | Some toContractAddr =>
+        validToContract toContractAddr;
         method_name = builtin to_ascii method;
+        validMethod method_name;
         m = { _tag : method_name; args : args;
              fromContractAddr : fromContract;
              fromChainId : fromChainId;
@@ -201,6 +243,22 @@ procedure checkAndMarkFromChainTxn(chainID : Uint64, txHash : ByStr)
     end
   | None =>
     e = TransactionHashInvalid;
+    ThrowError e
+  end
+end
+
+procedure validFromContract(addr: ByStr20)
+  val_opt <- whiteListFromContract[addr];
+  match val_opt with
+  | Some val =>
+    match val with
+    | True =>
+    | False =>
+      e = InvalidFromContract;
+      ThrowError e
+    end
+  | None => 
+    e = InvalidFromContract;
     ThrowError e
   end
 end
@@ -354,6 +412,8 @@ end
 transition CrossChain(toChainId: Uint64, toContract: ByStr, method: ByStr, txData: ByStr, originContractAddr: ByStr20)
   IsProxy;
   IsNotPaused;
+  (* only allow whitelist contract to call*)
+  validFromContract originContractAddr;
   txHashIndex <- zilToPolyTxHashIndex;
   paramTxHash = let b = builtin to_bystr32 txHashIndex in builtin to_bystr b;
   crossChainId =
