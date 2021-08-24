@@ -60,6 +60,10 @@ github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20210128110150-1e1a124ae32c h1:30TuWC6
 github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20210128110150-1e1a124ae32c/go.mod h1:pFTR1kiObhgi/4GYERw7/WHz+P5BD7ecE49uG12tqAY=
 github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20210824065622-336de12c8481 h1:QaibIueXFAqDt0HqFLyu7+yvl8CMADV31OauqdXhB4w=
 github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20210824065622-336de12c8481/go.mod h1:XLd05IRvH+nQt2lLvW6I2pfWBtRYE4i8Tpx45xBrlUE=
+github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20210824072619-3f19a1a023c1 h1:SeAJVNYxbYjScwBDMt7wcvsPSutuUtkDxThxiNP7XFI=
+github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20210824072619-3f19a1a023c1/go.mod h1:XLd05IRvH+nQt2lLvW6I2pfWBtRYE4i8Tpx45xBrlUE=
+github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20210824102216-fbe3ac73ebf3 h1:Cxj5KKZSFJdfNqePMba87Iz1rF2dRLm7jY5AVn2krlA=
+github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20210824102216-fbe3ac73ebf3/go.mod h1:XLd05IRvH+nQt2lLvW6I2pfWBtRYE4i8Tpx45xBrlUE=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=

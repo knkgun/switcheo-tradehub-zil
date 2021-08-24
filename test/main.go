@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/Zilliqa/gozilliqa-sdk/keytools"
-	"github.com/Zilliqa/gozilliqa-sdk/util"
 	"log"
 
 	"github.com/Zilliqa/gozilliqa-sdk/account"
@@ -19,7 +17,7 @@ func main() {
 		Host:          "https://dev-api.zilliqa.com",
 		ProxyPath:     "../contracts/ZilCrossChainManagerProxy.scilla",
 		ImplPath:      "../contracts/ZilCrossChainManager.scilla",
-		LockProxyPath: "../contracts/LockProxy.scilla",
+		LockProxyPath: "../contracts/LockProxySwitcheo.scilla",
 	}
 	wallet := account.NewWallet()
 	wallet.AddByPrivateKey(deployer.PrivateKey)
@@ -62,37 +60,8 @@ func main() {
 	//tester.ChangeBookKeeper()
 	tester.VerifierHeaderAndExecuteTx()
 
-	// dummy ethereum contract address here
-	ethLockProxy := "0x05f4a42e251f2d52b8ed15e9fedaacfcef1fad27"
-	_, err3 := l.BindProxyHash("1", ethLockProxy)
-	if err3 != nil {
-		log.Fatalln(err3.Error())
-	}
-
-	_, err4 := l.BindAssetHash("0x0000000000000000000000000000000000000000", "1", ethLockProxy)
-	if err4 != nil {
-		log.Fatalln(err4.Error())
-	}
-
-	_, err5 := l.Lock("0x0000000000000000000000000000000000000000", "1", "0xd3573e0daa110b5498c54e93b66681fc0e0ff911", "100")
-	if err5 != nil {
-		log.Fatalln(err5.Error())
-	}
-
-	pubKey := keytools.GetPublicKeyFromPrivateKey(util.DecodeHex(privateKey), true)
-	address := keytools.GetAddressFromPublic(pubKey)
-
-	_, err7 := l.SetManager("0x" + address)
-	if err7 != nil {
-		log.Fatalln(err7.Error())
-	}
-
-	// toAssetHash 0x05f4a42e251f2d52b8ed15e9fedaacfcef1fad27
-	// toAddressHash 0xd3573e0daa110b5498c54e93b66681fc0e0ff911
-	// amount 100
-	// txData 0x1405f4a42e251f2d52b8ed15e9fedaacfcef1fad2714d3573e0daa110b5498c54e93b66681fc0e0ff9110000000000000000000000000000000000000000000000000000000000000064
-	_, err6 := l.Unlock("0x1405f4a42e251f2d52b8ed15e9fedaacfcef1fad2714d3573e0daa110b5498c54e93b66681fc0e0ff9110000000000000000000000000000000000000000000000000000000000000064", "0x05f4a42e251f2d52b8ed15e9fedaacfcef1fad27", "1")
-	if err6 != nil {
-		log.Fatalln(err6.Error())
+	_,err2 = l.UnPause()
+	if err2 != nil {
+		log.Fatalln(err2.Error())
 	}
 }
