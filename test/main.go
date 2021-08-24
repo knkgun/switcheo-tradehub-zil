@@ -11,10 +11,12 @@ import (
 )
 
 func main() {
+	// 0x7d48043742a1103042d327111746531ca26be9be
+	// zil104yqgd6z5ygrqsknyug3w3jnrj3xh6d72g2ltv
 	privateKey := "e887faa2e702daa055e59ff9f94d2af9ded1b308fc30935bbc1b63dabbfb8b11"
 	deployer := &Deployer{
 		PrivateKey:    privateKey,
-		Host:          "https://polynetworkcc3dcb2-5-api.dev.z7a.xyz",
+		Host:          "https://dev-api.zilliqa.com",
 		ProxyPath:     "../contracts/ZilCrossChainManagerProxy.scilla",
 		ImplPath:      "../contracts/ZilCrossChainManager.scilla",
 		LockProxyPath: "../contracts/LockProxy.scilla",
