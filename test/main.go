@@ -23,6 +23,8 @@ func main() {
 	wallet.AddByPrivateKey(deployer.PrivateKey)
 	client := provider.NewProvider(deployer.Host)
 	proxy, impl, lockProxy, err := deployer.Deploy(wallet, client)
+	log.Printf("cross chain manager proxy address: %s\n", proxy)
+	log.Printf("cross chain manager address: %s\n", impl)
 	log.Printf("lock proxy address: %s\n", lockProxy)
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -60,7 +62,7 @@ func main() {
 	//tester.ChangeBookKeeper()
 	tester.VerifierHeaderAndExecuteTx()
 
-	_,err2 = l.UnPause()
+	_, err2 = l.UnPause()
 	if err2 != nil {
 		log.Fatalln(err2.Error())
 	}
