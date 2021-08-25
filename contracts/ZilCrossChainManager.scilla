@@ -554,3 +554,33 @@ transition PopulateWhiteListMethod(method: String, val: Bool, initiator: ByStr20
   IsAdmin initiator;
   whiteListMethod[method] := val
 end
+
+transition PopulateConKeepersPublicKeyList(keepers: List ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  conKeepersPublicKeyList := keepers
+end
+
+transition PopulatecurEpochStartHeight(height: Uint32, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  curEpochStartHeight := height
+end
+
+transition PopulateZilToPolyTxHashMap(index: Uint256, val: ByStr32, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  zilToPolyTxHashMap[index] := val
+end
+
+transition PopulateZilToPolyTxHashIndex(index: Uint256, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  zilToPolyTxHashIndex := index
+end
+
+transition PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  fromChainTxExist[chainId][txId] := unit
+end
