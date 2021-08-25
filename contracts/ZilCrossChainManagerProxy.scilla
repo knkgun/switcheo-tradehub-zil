@@ -172,9 +172,9 @@ transition PopulateConKeepersPublicKeyList(keepers: List ByStr20)
   send msgs
 end
 
-transition PopulatecurEpochStartHeight(height: Uint32)
+transition PopulateCurEpochStartHeight(height: Uint32)
   current_impl <- crosschain_manager;
-  msg = {_tag: "PopulatecurEpochStartHeight"; _recipient: current_impl; _amount: zero; height: height; initiator: _sender};
+  msg = {_tag: "PopulateCurEpochStartHeight"; _recipient: current_impl; _amount: zero; height: height; initiator: _sender};
   msgs = one_msg msg;
   send msgs
 end

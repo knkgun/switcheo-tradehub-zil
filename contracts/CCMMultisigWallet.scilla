@@ -97,6 +97,16 @@ type CalleeTransaction =
 | PopulateWhiteListToContract of ByStr20 Bool
 (* PopulateWhiteListMethod(method: String, val: Bool) *)
 | PopulateWhiteListMethod of String Bool
+(* PopulateConKeepersPublicKeyList(keepers: List ByStr20) *)
+| PopulateConKeepersPublicKeyList of (List ByStr20)
+(* PopulateCurEpochStartHeight(height: Uint32) *)
+| PopulateCurEpochStartHeight of Uint32
+(* PopulateZilToPolyTxHashMap(index: Uint256, val: ByStr32) *)
+| PopulateZilToPolyTxHashMap of Uint256 ByStr32
+(* PopulateZilToPolyTxHashIndex(index: Uint256) *)
+| PopulateZilToPolyTxHashIndex of Uint256
+(* PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32)*)
+| PopulateFromChainTxExist of Uint64 ByStr32
 
 
 (* Type of (outstanding) transactions *)
@@ -175,29 +185,61 @@ let custom_transaction_msg_as_list =
         (* ClaimAdmin() *)
       | ClaimAdmin => 
         {_recipient: calleeContract;
-        _tag: "ClaimAdmin";
-        _amount: Uint128 0}
+         _tag: "ClaimAdmin";
+         _amount: Uint128 0}
         (* PopulateWhiteListFromContract(addr: ByStr20, val: Bool) *)
       | PopulateWhiteListFromContract addr val =>
         {_recipient: calleeContract;
-        _tag: "PopulateWhiteListFromContract";
-        _amount: Uint128 0;
-        addr: addr;
-        val: val}
+         _tag: "PopulateWhiteListFromContract";
+         _amount: Uint128 0;
+         addr: addr;
+         val: val}
       (* PopulateWhiteListToContract(addr: ByStr20, val: Bool) *)
       | PopulateWhiteListToContract addr val =>
         {_recipient: calleeContract;
-        _tag: "PopulateWhiteListToContract";
-        _amount: Uint128 0;
-        addr: addr;
-        val: val}
+         _tag: "PopulateWhiteListToContract";
+         _amount: Uint128 0;
+         addr: addr;
+         val: val}
       (* PopulateWhiteListMethod(method: String, val: Bool) *)
       | PopulateWhiteListMethod method val =>
         {_recipient: calleeContract;
-        _tag: "PopulateWhiteListMethod";
-        _amount: Uint128 0;
-        method: method;
-        val: val}
+         _tag: "PopulateWhiteListMethod";
+         _amount: Uint128 0;
+         method: method;
+         val: val}
+      (* PopulateConKeepersPublicKeyList(keepers: List ByStr20) *)
+      | PopulateConKeepersPublicKeyList keepers =>
+        {_recipient: calleeContract;
+         _tag: "PopulateConKeepersPublicKeyList";
+         _amount: Uint128 0;
+         keepers: keepers}
+      (* PopulateCurEpochStartHeight(height: Uint32) *)
+      | PopulateCurEpochStartHeight height =>
+        {_recipient: calleeContract;
+         _tag: "PopulateCurEpochStartHeight";
+         _amount: Uint128 0;
+         height: height}
+      (* PopulateZilToPolyTxHashMap(index: Uint256, val: ByStr32) *)
+      | PopulateZilToPolyTxHashMap index val =>
+        {_recipient: calleeContract;
+         _tag: "PopulateZilToPolyTxHashMap";
+         _amount: Uint128 0;
+         index: index;
+         val: val}
+      (* PopulateZilToPolyTxHashIndex(index: Uint256) *)
+      | PopulateZilToPolyTxHashIndex index =>
+        {_recipient: calleeContract;
+         _tag: "PopulateZilToPolyTxHashIndex";
+         _amount: Uint128 0;
+         index: index}
+      (* PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32)*)
+      | PopulateFromChainTxExist chainId txId =>
+        {_recipient: calleeContract;
+         _tag: "PopulateFromChainTxExist";
+         _amount: Uint128 0;
+         chainId: chainId;
+         txId: txId}
       end
     in
     one_msg msg
@@ -456,6 +498,31 @@ end
 
 transition SubmitCustomPopulateWhiteListMethodTransaction(calleeContract: ByStr20, method: String, val: Bool)
   transaction = PopulateWhiteListMethod method val;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateConKeepersPublicKeyListTransaction(calleeContract: ByStr20, keepers: List ByStr20)
+  transaction = PopulateConKeepersPublicKeyList keepers;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateCurEpochStartHeightTransaction(calleeContract: ByStr20, height: Uint32)
+  transaction = PopulateCurEpochStartHeight height;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateZilToPolyTxHashMapTransaction(calleeContract: ByStr20, index: Uint256, val: ByStr32)
+  transaction = PopulateZilToPolyTxHashMap index val;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateZilToPolyTxHashIndexTransaction(calleeContract: ByStr20, index: Uint256)
+  transaction = PopulateZilToPolyTxHashIndex index;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateFromChainTxExistTransaction(calleeContract: ByStr20, chainId: Uint64, txId: ByStr32)
+  transaction = PopulateFromChainTxExist chainId txId;
   SubmitCustomTransaction calleeContract transaction
 end
 

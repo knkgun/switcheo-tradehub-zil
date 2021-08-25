@@ -561,7 +561,7 @@ transition PopulateConKeepersPublicKeyList(keepers: List ByStr20, initiator: ByS
   conKeepersPublicKeyList := keepers
 end
 
-transition PopulatecurEpochStartHeight(height: Uint32, initiator: ByStr20)
+transition PopulateCurEpochStartHeight(height: Uint32, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   curEpochStartHeight := height
