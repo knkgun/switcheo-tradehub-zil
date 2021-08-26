@@ -91,8 +91,10 @@ type CalleeTransaction =
 | ClaimAdmin
 (* Transfer(to: ByStr20, amount: Uint128) *)
 | TransferZRC2 of ByStr20 Uint128
-(* Withdraw(coin : Coin) *)
-| Withdraw of Coin
+(* WithdrawZIL(amount: Uint128) *)
+| WithdrawZIL of Uint128
+(* WithdrawZRC2(token: ByStr20, amount: Uint128) *)
+| WithdrawZRC2 of ByStr20 Uint128
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -162,12 +164,19 @@ let custom_transaction_msg_as_list =
          _amount: Uint128 0;
          to: to;
          amount: amount}
-        (* transition Withdraw(coin : Coin)*)
-      |  Withdraw coin =>
+        (* WithdrawZIL(amount: Uint128) *)
+      | WithdrawZIL amount =>
         {_recipient: calleeContract;
-         _tag: "Transfer";
+         _tag: "WithdrawZIL";
          _amount: Uint128 0;
-         coin: coin}
+         amount: amount}
+        (* WithdrawZRC2(token: ByStr20, amount: Uint128) *)
+      | WithdrawZRC2 token amount => 
+        {_recipient: calleeContract;
+         _tag: "WithdrawZIL";
+         _amount: Uint128 0;
+         token: token;
+         amount: amount}
       end
     in
     one_msg msg
@@ -387,9 +396,15 @@ transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
 end
 
 (* Submit a new Withdraw transaction for future signoff *)
+transition SubmitCustomWithdrawZILTransaction(calleeContract: ByStr20, amount: Uint128)
+  transaction = WithdrawZIL amount;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new Withdraw transaction for future signoff *)
 (* calleeContract should be ZRC2 address*)
-transition SubmitCustomWithdrawTransaction(calleeContract: ByStr20, coin: Coin)
-  transaction = Withdraw coin;
+transition SubmitCustomWithdrawZRC2Transaction(calleeContract: ByStr20, token: ByStr20, amount: Uint128)
+  transaction = WithdrawZRC2 token amount;
   SubmitCustomTransaction calleeContract transaction
 end
 

@@ -31,13 +31,6 @@ type RegisterAssetTxArgs =
 type TransferTxArgs =
 | TransferTxArgs of ByStr ByStr ByStr ByStr Uint256 Uint256 ByStr Uint256
 
-type Denom =
-  | Zil
-  | Token of ByStr20 (* token address / hash *)
-
-type Coin =
-  | Coin of Denom Uint128 (* denom, amount *)
-
 type Error = 
   | AdminValidationFailed
   | AmountCannotBeZero
@@ -672,27 +665,23 @@ transition unlock(
   end
 end
 
-(* @dev: Emergency withdrawal of ZRC-2 tokens or ZIL from the contract to the admin.    *)
-(* @param coin: The amount and type of coin to withdraw.            *)
-transition Withdraw(coin : Coin)
+transition WithdrawZIL(amount: Uint128)
   isPaused;
   IsAdmin _sender;
-  match coin with
-  | Coin denom amount =>
-    match denom with
-    | Zil =>
-      msg = { _tag : "AddFunds"; _recipient : _sender; _amount : amount };
-      msgs = one_msg msg;
-      send msgs
-    | Token token =>
-      msg_to_token = {
-        _tag : "Transfer"; _recipient : token; _amount : uint128_zero;
-        to : _sender; amount : amount
-      };
-      msgs = one_msg msg_to_token;
-      send msgs
-    end
-  end
+  msg = { _tag : "AddFunds"; _recipient : _sender; _amount : amount };
+  msgs = one_msg msg;
+  send msgs
+end
+
+transition WithdrawZRC2(token: ByStr20, amount: Uint128)
+  isPaused;
+  IsAdmin _sender;
+  msg_to_token = {
+    _tag : "Transfer"; _recipient : token; _amount : uint128_zero;
+    to : _sender; amount : amount
+  };
+  msgs = one_msg msg_to_token;
+  send msgs
 end
 
 transition AddFunds()
