@@ -173,7 +173,7 @@ let custom_transaction_msg_as_list =
         (* WithdrawZRC2(token: ByStr20, amount: Uint128) *)
       | WithdrawZRC2 token amount => 
         {_recipient: calleeContract;
-         _tag: "WithdrawZIL";
+         _tag: "WithdrawZRC2";
          _amount: Uint128 0;
          token: token;
          amount: amount}
@@ -402,7 +402,6 @@ transition SubmitCustomWithdrawZILTransaction(calleeContract: ByStr20, amount: U
 end
 
 (* Submit a new Withdraw transaction for future signoff *)
-(* calleeContract should be ZRC2 address*)
 transition SubmitCustomWithdrawZRC2Transaction(calleeContract: ByStr20, token: ByStr20, amount: Uint128)
   transaction = WithdrawZRC2 token amount;
   SubmitCustomTransaction calleeContract transaction
