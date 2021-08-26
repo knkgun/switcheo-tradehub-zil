@@ -70,6 +70,13 @@ type SSNCycleInfo =
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
+type Denom =
+  | Zil
+  | Token of ByStr20 (* token address / hash *)
+
+type Coin =
+  | Coin of Denom Uint128 (* denom, amount *)
+
 
 (* Type of Proxy transactions. *)
 (* All calls are made to the proxy contract *)
@@ -84,6 +91,8 @@ type CalleeTransaction =
 | ClaimAdmin
 (* Transfer(to: ByStr20, amount: Uint128) *)
 | TransferZRC2 of ByStr20 Uint128
+(* Withdraw(coin : Coin) *)
+| Withdraw of Coin
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -153,6 +162,12 @@ let custom_transaction_msg_as_list =
          _amount: Uint128 0;
          to: to;
          amount: amount}
+        (* transition Withdraw(coin : Coin)*)
+      |  Withdraw coin =>
+        {_recipient: calleeContract;
+         _tag: "Transfer";
+         _amount: Uint128 0;
+         coin: coin}
       end
     in
     one_msg msg
@@ -371,12 +386,20 @@ transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
   SubmitCustomTransaction calleeContract transaction
 end
 
+(* Submit a new Withdraw transaction for future signoff *)
+(* calleeContract should be ZRC2 address*)
+transition SubmitCustomWithdrawTransaction(calleeContract: ByStr20, coin: Coin)
+  transaction = Withdraw coin;
+  SubmitCustomTransaction calleeContract transaction
+end
+
 (* Submit a new Transfer transaction for future signoff *)
 (* calleeContract should be ZRC2 address*)
 transition SubmitCustomTransferZRC2Transaction(calleeContract: ByStr20, to: ByStr20, amount: Uint128)
   transaction = TransferZRC2 to amount;
   SubmitCustomTransaction calleeContract transaction
 end
+
 (* Sign off on an existing transaction *)
 transition SignTransaction (transactionId : Uint32)
   (* Only owners are allowed to sign off transactions *)
