@@ -70,19 +70,17 @@ type SSNCycleInfo =
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
+type Denom =
+  | Zil
+  | Token of ByStr20 (* token address / hash *)
+
+type Coin =
+  | Coin of Denom Uint128 (* denom, amount *)
+
 
 (* Type of Proxy transactions. *)
 (* All calls are made to the proxy contract *)
 type CalleeTransaction =
-(***************************************************)
-(*               Proxy Transition                  *)
-(***************************************************)
-(* UpgradeTo(new_crosschain_manager: ByStr20) *)
-| UpgradeTo of ByStr20
-(* ChangeProxyAdmin(newAdmin: ByStr20) *)
-| ChangeProxyAdmin of ByStr20
-(* ClaimProxyAdmin() *)
-| ClaimProxyAdmin
 (* Pause() *)
 | Pause
 (* UnPause() *)
@@ -91,6 +89,12 @@ type CalleeTransaction =
 | UpdateAdmin of ByStr20
 (* ClaimAdmin() *)
 | ClaimAdmin
+(* Transfer(to: ByStr20, amount: Uint128) *)
+| TransferZRC2 of ByStr20 Uint128
+(* WithdrawZIL(amount: Uint128) *)
+| WithdrawZIL of Uint128
+(* WithdrawZRC2(token: ByStr20, amount: Uint128) *)
+| WithdrawZRC2 of ByStr20 Uint128
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -132,23 +136,6 @@ let custom_transaction_msg_as_list =
   fun (calleeTransaction : CalleeTransaction) =>
     let msg =
       match calleeTransaction with
-        (* UpgradeTo(new_crosschain_manager: ByStr20) *)
-      | UpgradeTo new_crosschain_manager =>
-        {_recipient: calleeContract ;
-         _tag: "UpgradeTo";
-         _amount: Uint128 0;
-         new_crosschain_manager : new_crosschain_manager}
-        (* ChangeProxyAdmin(newAdmin: ByStr20) *)
-      | ChangeProxyAdmin newAdmin =>
-        {_recipient: calleeContract;
-         _tag: "ChangeProxyAdmin";
-         _amount: Uint128 0;
-         newAdmin: newAdmin}
-        (* ClaimProxyAdmin() *)
-      | ClaimProxyAdmin =>
-        {_recipient: calleeContract;
-         _tag: "ClaimProxyAdmin";
-         _amount: Uint128 0}
         (* Pause() *)
       | Pause =>
         {_recipient: calleeContract;
@@ -168,8 +155,28 @@ let custom_transaction_msg_as_list =
         (* ClaimAdmin() *)
       | ClaimAdmin => 
         {_recipient: calleeContract;
-        _tag: "ClaimAdmin";
-        _amount: Uint128 0}
+         _tag: "ClaimAdmin";
+         _amount: Uint128 0}
+        (* Transfer(to: ByStr20, amount: Uint128) *)
+      | TransferZRC2 to amount =>
+        {_recipient: calleeContract;
+         _tag: "Transfer";
+         _amount: Uint128 0;
+         to: to;
+         amount: amount}
+        (* WithdrawZIL(amount: Uint128) *)
+      | WithdrawZIL amount =>
+        {_recipient: calleeContract;
+         _tag: "WithdrawZIL";
+         _amount: Uint128 0;
+         amount: amount}
+        (* WithdrawZRC2(token: ByStr20, amount: Uint128) *)
+      | WithdrawZRC2 token amount => 
+        {_recipient: calleeContract;
+         _tag: "WithdrawZRC2";
+         _amount: Uint128 0;
+         token: token;
+         amount: amount}
       end
     in
     one_msg msg
@@ -361,33 +368,6 @@ procedure SubmitCustomTransaction (calleeContract : ByStr20, calleeTransaction :
 end
 
 (***************************************************)
-(*               Proxy Transition                  *)
-(***************************************************)
-
-(* Submit a new UpgradeTo transaction for future signoff *)
-transition SubmitCustomUpgradeToTransaction (calleeContract : ByStr20, newCrosschainManager : ByStr20)
-  transaction = UpgradeTo newCrosschainManager;
-  SubmitCustomTransaction calleeContract transaction
-end
-
-(* Submit a new ChangeProxyAdmin transaction for future signoff *)
-transition SubmitCustomChangeProxyAdminTransaction (calleeContract : ByStr20, newAdmin : ByStr20)
-  transaction = ChangeProxyAdmin newAdmin;
-  SubmitCustomTransaction calleeContract transaction
-end
-
-(* Submit a new ClaimProxyAdmin transaction for future signoff *)
-transition SubmitCustomClaimProxyAdminTransaction (calleeContract : ByStr20)
-  transaction = ClaimProxyAdmin;
-  SubmitCustomTransaction calleeContract transaction
-end
-
-(***************************************************)
-(*              CCMC Transitions                   *)
-(***************************************************)
-
-
-(***************************************************)
 (*            House keeping transition             *)
 (***************************************************)
 
@@ -412,6 +392,25 @@ end
 (* Submit a new ClaimAdmin transaction for future signoff *)
 transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
   transaction = ClaimAdmin;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new Withdraw transaction for future signoff *)
+transition SubmitCustomWithdrawZILTransaction(calleeContract: ByStr20, amount: Uint128)
+  transaction = WithdrawZIL amount;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new Withdraw transaction for future signoff *)
+transition SubmitCustomWithdrawZRC2Transaction(calleeContract: ByStr20, token: ByStr20, amount: Uint128)
+  transaction = WithdrawZRC2 token amount;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new Transfer transaction for future signoff *)
+(* calleeContract should be ZRC2 address*)
+transition SubmitCustomTransferZRC2Transaction(calleeContract: ByStr20, to: ByStr20, amount: Uint128)
+  transaction = TransferZRC2 to amount;
   SubmitCustomTransaction calleeContract transaction
 end
 
@@ -554,4 +553,23 @@ transition ExecuteTransaction (transactionId : Uint32)
       end
     end
   end
+end
+
+(* Add native funds to wallet *)
+transition AddFunds ()
+  accept;
+  e = { _eventname: "FundsAdded"; sender: _sender; amount : _amount};
+  event e
+end
+
+transition RecipientAcceptTransfer(sender: ByStr20, recipient: ByStr20, amount: Uint128)
+end
+
+transition TransferSuccessCallBack(sender: ByStr20, recipient: ByStr20, amount: Uint128)
+end
+
+transition RecipientAcceptTransferFrom(initiator: ByStr20, sender: ByStr20, recipient: ByStr20, amount: Uint128)
+end
+
+transition TransferFromSuccessCallBack(initiator: ByStr20, sender: ByStr20, recipient: ByStr20, amount: Uint128)
 end

@@ -14,6 +14,8 @@ let unlock = let a = 0x756e6c6f636b in builtin to_bystr a
 let uint128_max = Uint256 340282366920938463463374607431768211455
 let uint256_zero = Uint256 0
 let uint256_one = Uint256 1
+let bool_active = True
+let bool_inactive = False
 
 (* toAssetHash, toAddress, amount *)
 type TxArgs = 
@@ -45,6 +47,10 @@ type Error =
   | InvalidFromChainId
   | InvalidUnlockArgs
   | DeserializeRegisterAssetArgsFail
+  | StagingAdminValidationFailed
+  | StagingAdminNotExist
+  | ContractPaused
+  | ContractNotPaused
 
 let make_error =
   fun (result: Error) =>
@@ -65,6 +71,10 @@ let make_error =
       | InvalidFromChainId => Int32 -13
       | InvalidUnlockArgs => Int32 -14
       | DeserializeRegisterAssetArgsFail => Int32 -15
+      | StagingAdminValidationFailed => Int32 -16
+      | StagingAdminNotExist => Int32 -17
+      | ContractPaused => Int32 -18
+      | ContractNotPaused => Int32 -19
       end
     in
     { _exception: "Error"; code: result_code }
@@ -188,6 +198,7 @@ contract LockProxy(
 )
 
 field contractadmin: ByStr20  = init_admin
+field stagingcontractadmin: Option ByStr20 = None {ByStr20}
 field manager: ByStr20 = init_manager
 field manager_proxy: ByStr20 = init_manager_proxy
 field counterpart_chainId: Uint64 = init_counterpart_chainId
@@ -195,6 +206,7 @@ field counterpart_chainId: Uint64 = init_counterpart_chainId
 (* associated proxy address on Switcheo TradeHub, associated asset hash on Switcheo TradeHub *)
 field register: Map ByStr20 ByStr32 = Emp ByStr20 ByStr32
 field nonce: Uint256 = Uint256 0
+field paused: Bool = True
 
 (* Procedures *)
 procedure ThrowError(err: Error)
@@ -221,6 +233,26 @@ procedure IsManagerContract(initiator: ByStr20)
   | False =>
     e = ManagerValidationFailed;
     ThrowError e
+  end
+end
+
+procedure isNotPaused()
+  paused_tmp <- paused;
+  match paused_tmp with
+  | False =>
+  | True  =>
+    e = ContractPaused;
+    ThrowError e
+  end
+end
+
+procedure isPaused()
+  paused_tmp <- paused;
+  match paused_tmp with
+  | False =>
+    e = ContractNotPaused;
+    ThrowError e
+  | True  =>
   end
 end
 
@@ -282,7 +314,6 @@ procedure ValidateCounterpartChainId(fromChainId: Uint64)
     e = IllegalFromChainId;
     ThrowError e
   end
-  
 end
 
 (* @param fromAssetHash: The asset address in current chain, uniformly named as fromAssetHash *)
@@ -479,6 +510,58 @@ procedure lockProcedure(
   end
 end
 
+(***************************************************)
+(*                  Transition                     *)
+(***************************************************)
+
+(***************************************************)
+(*            House keeping transition             *)
+(***************************************************)
+
+(* @dev: Start a proposal for new contract admin. Used by admin only. *)
+(* @param newAdmin: New admin value *)
+transition UpdateAdmin(newAdmin: ByStr20)
+  IsAdmin _sender;
+  staging_admin = Some {ByStr20} newAdmin;
+  stagingcontractadmin := staging_admin
+end
+
+(* @dev: Claim to be the new admin of contract. *)
+transition ClaimAdmin()
+  staging_admin <- stagingcontractadmin;
+  match staging_admin with
+  | Some admin =>
+    is_valid = builtin eq _sender admin;
+    match is_valid with
+    | True =>
+      contractadmin := admin;
+      staging_admin = None {ByStr20};
+      stagingcontractadmin := staging_admin;
+      e = { _eventname: "ClaimAdmin"; new_admin: admin };
+      event e
+    | False =>
+      e = StagingAdminValidationFailed;
+      ThrowError e
+    end
+  | None =>
+    e = StagingAdminNotExist;
+    ThrowError e
+  end
+end
+
+(* @dev: pause the contract. Used by admin only.               *)
+transition Pause()
+  IsAdmin _sender;
+  paused := bool_active
+end
+
+(* @dev: unpause/unfreeze the contract. Used by admin only.    *)
+transition UnPause()
+  IsAdmin _sender;
+  paused := bool_inactive
+end
+
+
 (* Perfrom a deposit *)
 (* @param tokenAddr: the address of the token to deposit *)
 (* @param targetProxyHash: the associated proxy hash on Switcheo TrandeHub *)
@@ -496,6 +579,7 @@ transition lock(
   amount: Uint256,
   feeAmount: Uint256
 )
+  isNotPaused;
   amount_uint128_o = builtin to_uint128 amount;
   match amount_uint128_o with
   | Some amount_uint128 =>
@@ -513,6 +597,7 @@ end
 (* @param fromContractAddr: the associated contract address on Swticheo TradeHub *)
 (* @param fromChainId: the originating chainId *)
 transition registerAsset(args: ByStr, fromContractAddr: ByStr, fromChainId: Uint64)
+  isNotPaused;
   IsManagerContract _sender;
   ValidateCounterpartChainId fromChainId;
   e = { _eventname: "registerAssetInput"; args: args };
@@ -547,6 +632,7 @@ transition unlock(
   fromContractAddr: ByStr,
   fromChainId: Uint64
 )
+  isNotPaused;
   IsManagerContract _sender;
   validateFromChainId fromChainId;
   transfer_tx_args_o = deserialize_transfer_tx_args args uint32_zero;
@@ -577,7 +663,25 @@ transition unlock(
     e = InvalidUnlockArgs;
     ThrowError e
   end
+end
 
+transition WithdrawZIL(amount: Uint128)
+  isPaused;
+  IsAdmin _sender;
+  msg = { _tag : "AddFunds"; _recipient : _sender; _amount : amount };
+  msgs = one_msg msg;
+  send msgs
+end
+
+transition WithdrawZRC2(token: ByStr20, amount: Uint128)
+  isPaused;
+  IsAdmin _sender;
+  msg_to_token = {
+    _tag : "Transfer"; _recipient : token; _amount : uint128_zero;
+    to : _sender; amount : amount
+  };
+  msgs = one_msg msg_to_token;
+  send msgs
 end
 
 transition AddFunds()

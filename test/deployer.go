@@ -139,6 +139,11 @@ func (d *Deployer) Deploy(wallet *account.Wallet, client *provider.Provider) (st
 			"ByStr20",
 			"0x" + impl,
 		},
+		{
+			"init_counterpart_chainId",
+			"Uint64",
+			"1",
+		},
 	}
 
 	lockProxy, err2 := d.deploy(code, init, wallet, client, pubKey, address)
