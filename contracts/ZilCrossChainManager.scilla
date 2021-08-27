@@ -277,23 +277,23 @@ end
 transition UpdateAdmin(newAdmin: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  staging_admin = Some {ByStr20} newAdmin;
-  stagingcontractadmin := staging_admin
+  sca = Some {ByStr20} newAdmin;
+  stagingcontractadmin := sca
 end
 
 (* @dev: Claim to be the new admin of contract. *)
 (* @param initiator: The original caller who called the proxy. *)
 transition ClaimAdmin(initiator: ByStr20)
   IsProxy;
-  staging_admin <- stagingcontractadmin;
-  match staging_admin with
+  stagingAdmin <- stagingcontractadmin;
+  match stagingAdmin with
   | Some admin =>
     is_valid = builtin eq initiator admin;
     match is_valid with
     | True =>
       contractadmin := admin;
-      staging_admin = None {ByStr20};
-      stagingcontractadmin := staging_admin;
+      nonAdmin = None {ByStr20};
+      stagingcontractadmin := nonAdmin;
       e = { _eventname: "ClaimAdmin"; new_admin: admin };
       event e
     | False =>
@@ -428,7 +428,6 @@ transition CrossChain(toChainId: Uint64, toContract: ByStr, method: ByStr, txDat
   rawParam = append_TxParam empty_bystr txp;
   rawParamHash = builtin keccak256hash rawParam;
   updateZilTxHash txHashIndex rawParamHash;
-  (* todo: original caller *)
   e = { _eventname : "CrossChainEvent";
        sender : _origin;
        txId : paramTxHash;
