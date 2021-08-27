@@ -327,7 +327,6 @@ transition unlock(args: ByStr, fromContractAddr: ByStr, fromChainId: Uint64)
   tx_args_o = deserialize_tx_args args uint32_zero;
   match tx_args_o with
   | Some (TxArgs toAssetHash toAddressHash amount) =>
-    (* ValidateToAssetHash toAssetHash; *)
     toAssetAddress_o = builtin to_bystr20 toAssetHash;
     toAddress_o = builtin to_bystr20 toAddressHash;
     match toAssetAddress_o with
