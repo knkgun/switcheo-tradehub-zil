@@ -16,7 +16,12 @@ The table blow summarizes the purpose of the contracts that polynetwork will use
 |--|--| --|
 |ZilCrossChainManager| [`ZilCrossChainManager.scilla`](./contracts/ZilCrossChainManager.scilla)  | The main contract that keeps track of the book keepers of Poly chain, push cross chain transaction event to relayer and execute the cross chain transaction from Poly chain to Zilliqa.|
 |ZilCrossChainManagerProxy| [`ZilCrossChainManagerProxy.scilla`](./contracts/ZilCrossChainManagerProxy.scilla)  | A proxy contract that sits on top of the ZilCrossChainManager contract. Any call to the `ZilCrossChainManager` contract must come from `ZilCrossChainManagerProxy`. This contract facilitates upgradeability of the `ZilCrossChainManager` contract in case a bug is found.|
-|LockProxy| [`LockProxy.scilla`](./contracts/LockProxy.scilla)  | A application contract that allows people to lock ZRC2 tokens and native zils to get corresponding tokens in target chain (e.g. ERC20 in ethereum) and vise versa.|
+|LockProxy| [`LockProxy.scilla`](./old_contracts/LockProxy.scilla)  | A application contract that allows people to lock ZRC2 tokens and native zils to get corresponding tokens in target chain (e.g. ERC20 in ethereum) and vise versa.|
+|LockProxySwitcheo| [`LockProxySwitcheo.scilla`](./contracts/LockProxySwitcheo.scilla)  | A Switcheo version contract that allows cross chain mananger to register assets, as well as allowing people to lock ZRC2 and native zils to get corresponding tokens in target chain (e.g. ERC20 in ethereum) and vise versa. |
+|CCMMultisigWallet| [`CCMMultisigWallet.scilla`](./contracts/CCMMultisigWallet.scilla) | A multisig wallet that should be controlling crosss chain manager contract. |
+|LockProxySwitcheoMultisigWallet| [`LockProxySwitcheoMultisigWallet.scilla`](./contracts/LockProxySwitcheoMultisigWallet.scilla) | A multisig wallet that should be controlling swticheo LockProxy contract. |
+|SwitcheoTokenZRC2| [`SwitcheoTokenZRC2.scilla`](./contracts/SwitcheoTokenZRC2.scilla) | A Switcheo version of ZRC2 token contract. |
+
 
 # ZilCrossChainManager Contract Specification
 
@@ -56,6 +61,9 @@ type Error =
   | ProxyValidationFailed
   | StagingAdminValidationFailed
   | StagingAdminNotExist
+  | InvalidFromContract
+  | InvalidToContract
+  | InvalidMethod
 ```
 
 ## Immutable Parameters
@@ -81,6 +89,11 @@ The table below presents the mutable fields of the contract and their initial va
 | `zilToPolyTxHashIndex` | `Uint256` |  `Uint256 0` | Record the length of aboving map. |
 | `fromChainTxExist` | `Map Uint64 (Map ByStr32 Unit)` |  `Emp Uint64 (Map ByStr32 Unit)` |Record the from chain txs that have been processed. |
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
+| `stagingcontractadmin` | `Option ByStr20` |  `None {ByStr20}` | Address of the staging administrator of this contract. |
+| `whiteListFromContract` | `Map ByStr20 Bool` |  `Emp ByStr20 Bool` | Map of whitelisted contract address that this contract can be called from. |
+| `whiteListToContract` | `Map ByStr20 Bool` |  `Emp ByStr20 Bool` | Map of whitelisted contract address that this contract can call to. |
+| `whiteListMethod` | `Map String Bool` |  `Emp ByStr20 Bool` | Map of whitelisted transition name that this contract can call. |
+
 
 ## Transitions 
 
@@ -110,6 +123,19 @@ All the transitions in the contract can be categorized into three categories:
 | `ChangeBookKeeper` | `rawHeader: ByStr, pubkeys: List Pubkey, sigList: List Signature`| Change Poly chain consensus book keeper. | <center>:x:</center> | :heavy_check_mark: |
 | `CrossChain` | `toChainId: Uint64, toContract: ByStr, method: ByStr, txData: ByStr`| ZRC2 token cross chain to other blockchain. this function push tx event to blockchain. | <center>:x:</center> | :heavy_check_mark: |
 | `VerifyHeaderAndExecuteTx` | `proof: Proof, rawHeader: ByStr, headerProof: Proof, curRawHeader: ByStr, headerSig: List Signature`| Verify Poly chain header and proof, execute the cross chain tx  from Poly chain to Zilliqa. | <center>:x:</center> | :heavy_check_mark: |
+
+### Upgrading Transitions
+
+| Name        | Params     | Description | Callable when paused? | Callable when not paused? | 
+| ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
+| `PopulateWhiteListFromContract` | `addr: ByStr20, val: Bool, initiator: ByStr20`| Populate map whiteListFromContract after upgrading. | :heavy_check_mark: | :heavy_check_mark: |
+| `PopulateWhiteListToContract` | `addr: ByStr20, val: Bool, initiator: ByStr20`| Populate map whiteListToContract after upgrading. | :heavy_check_mark: | :heavy_check_mark: |
+| `PopulateWhiteListMethod` | `method: String, val: Bool, initiator: ByStr20`| Populate map whiteListMethod after upgrading. | :heavy_check_mark: | :heavy_check_mark: |
+| `PopulateConKeepersPublicKeyList` | `keepers: List ByStr20, initiator: ByStr20`| Populate list conKeepersPublicKeyList after upgrading. | :heavy_check_mark: | :heavy_check_mark: |
+| `PopulateCurEpochStartHeight` | `height: Uint32, initiator: ByStr20`| Populate field curEpochStartHeight after upgrading. | :heavy_check_mark: | :heavy_check_mark: |
+| `PopulateZilToPolyTxHashMap` | `index: Uint256, val: ByStr32, initiator: ByStr20`| Populate map zilToPolyTxHashMap after upgrading. | :heavy_check_mark: | :heavy_check_mark: |
+| `PopulateZilToPolyTxHashIndex` | `index: Uint256, initiator: ByStr20`| Populate field PopulateZilToPolyTxHashIndex after upgrading. | :heavy_check_mark: | :heavy_check_mark: |
+| `PopulateFromChainTxExist` | `chainId: Uint64, txId: ByStr32, initiator: ByStr20`| Populate map fromChainTxExist after upgrading. | :heavy_check_mark: | :heavy_check_mark: |
 
 # ZilCrossChainManagerProxy Contract Specification
 
@@ -143,6 +169,7 @@ The table below presents the mutable fields of the contract and their initial va
 |--|--|--|--|
 |`crosschain_manager`| `ByStr20` | `init_crosschain_manager` | Address of the current implementation of the `ZilCrossChainManager` contract. |
 |`admin`| `ByStr20` | `init_owner` | Current `admin` of the contract. |
+|`stagingadmin`| `Option ByStr20` | `None {ByStr20}` | Staging `admin` of the contract. |
 
 ## Transitions
 
@@ -176,6 +203,14 @@ parameter `initiator` for the `ZilCrossChainManager` contract.
 |`ChangeBookKeeper(rawHeader: ByStr, pubkeys: List Pubkey, sigList: List Signature)` | `ChangeBookKeeper(rawHeader: ByStr, pubkeys: List Pubkey, sigList: List Signature)`|
 | `CrossChain(toChainId: Uint64, toContract: ByStr, method: ByStr, txData: ByStr)` | ` CrossChain(toChainId: Uint64, toContract: ByStr, method: ByStr, txData: ByStr)`|
 | `VerifyHeaderAndExecuteTx(proof: Proof, rawHeader: ByStr, headerProof: Proof, curRawHeader: ByStr, headerSig: List Signature)` | `VerifyHeaderAndExecuteTx(proof: Proof, rawHeader: ByStr, headerProof: Proof, curRawHeader: ByStr, headerSig: List Signature)`|
+|`PopulateWhiteListFromContract(addr: ByStr20, val: Bool)` | `PopulateWhiteListFromContract(addr: ByStr20, val: Bool, initiator: ByStr20)` |
+|`PopulateWhiteListToContract(addr: ByStr20, val: Bool)` | `PopulateWhiteListToContract(addr: ByStr20, val: Bool, initiator: ByStr20)`|
+|`PopulateWhiteListMethod(method: String, val: Bool)` | `PopulateWhiteListMethod(method: String, val: Bool, initiator: ByStr20)`|
+|`PopulateConKeepersPublicKeyList(keepers: List ByStr20)` | `PopulateConKeepersPublicKeyList(keepers: List ByStr20, initiator: ByStr20) `|
+|`PopulateCurEpochStartHeight(height: Uint32)` | `PopulateCurEpochStartHeight(height: Uint32, initiator: ByStr20)` |
+|`PopulateZilToPolyTxHashMap(index: Uint256, val: ByStr32)` | `PopulateZilToPolyTxHashMap(index: Uint256, val: ByStr32, initiator: ByStr20` |
+|`PopulateZilToPolyTxHashIndex(index: Uint256)` | `PopulateZilToPolyTxHashIndex(index: Uint256, initiator: ByStr20)` |
+|`PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32)` | `PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32, initiator: ByStr20)` |
 
 # LockProxy Contract Specification
 
@@ -218,6 +253,48 @@ The table below presents the mutable fields of the contract and their initial va
 |--|--|--|
 |`Lock`| `fromAssetHash: ByStr20, toChainId: Uint64, toAddress: ByStr, amount: Uint128` | Invoked by the user, a certin amount tokens will be locked in the proxy contract the invoker/msg.sender immediately, then the same amount of tokens will be unloked from target chain proxy contract at the target chain with chainId later.|
 |`Unlock`| `txData: ByStr, fromContractAddr: ByStr, fromChainId: Uint64` | Invoked by the Zilliqa crosschain management contract, then mint a certin amount of tokens to the designated address since a certain amount was burnt from the source chain invoker.|
+
+# LockProxySwitcheo Contract Specification
+
+`LockProxySwitcheo` is a Switcheo version contract that allows people to lock ZRC2 tokens and native zils to get corresponding tokens in target chain (e.g. ERC20 in ethereum) and vise versa.
+
+## Roles and Privileges
+
+The table below describes the roles and privileges that this contract defines:
+
+| Role | Description & Privileges|                                    
+| --------------- | ------------------------------------------------- |
+| `init_admin`           | The initial admin of the contract which is usually the creator of the contract. `init_admin` is also the initial value of admin. |
+| `admin`    | Current `admin` of the contract initialized to `init_admin`. Certain critical actions can only be performed by the `admin`. |
+| `init_manager_proxy` | The initial cross chain manager proxy address. |
+| `init_manager` | The initial cross chain manager address. |
+
+
+## Immutable Parameters
+
+The table below lists the parameters that are defined at the contract deployment time and hence cannot be changed later on.
+
+| Name | Type | Description |
+|--|--|--|
+|`init_admin`| `ByStr20` | The address of the admin. |
+|`init_manager_proxy`| `ByStr20` | The initial cross chain manager proxy address. |
+|`init_manager`| `ByStr20` | The initial cross chain manager address. |
+|`init_counterpart_chainId`| The initial counterpart chain id. |
+
+## Mutable Fields
+
+The table below presents the mutable fields of the contract and their initial values.
+
+| Name | Type | Initial Value |Description |
+|--|--|--|--|
+|`contractadmin`| `ByStr20` | `init_owner` | Current `admin` of the contract. |
+|`stagingcontractadmin`| `ByStr20` | `init_owner` | Current `admin` of the contract. |
+|`manager`| `ByStr20` | `init_manager` | Address of the current `ZilCrossChainManager` contract. |
+|`manager_proxy`| `ByStr20` | `init_manager_proxy` | Address of the current `ZilCrossChainManagerProxy` contract. |
+|`counterpart_chainId`| `Uint64` | `init_counterpart_chainId` | The counterpart chain id. |
+
+## Transitions
+
 
 
 # More on cross chain infrastructure
