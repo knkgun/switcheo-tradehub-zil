@@ -6,6 +6,10 @@
 - [ZilCrossChainManager Contract Specification](#zilcrosschainmanager-contract-specification)
 - [ZilCrossChainManagerProxy Contract Specification](#zilcrosschainmanagerproxy-contract-specification)
 - [LockProxy Contract Specification](#lockproxy-contract-specification)
+- [LockProxySwitcheo Contract Specification](#lockproxyswitcheo-contract-specification)
+- [CCMMultisigWalet Contract Specification](#ccmmultisigwallet-contract-specification)
+- [LockProxySwitcheoMultisigWallet Contract Specification](#lockproxyswitcheomultisigwallet-contract-specification)
+- [SwitcheoTokenZRC2 Contract Specification](#switcheotokenzrc2-contract-specification)
 - [More on cross chain infrastructure](#more-on-cross-chain-infrastructure)
 
 # Overview
@@ -295,7 +299,35 @@ The table below presents the mutable fields of the contract and their initial va
 
 ## Transitions
 
+# CCMMultisigWalet Contract Specification
 
+## Roles and Privileges
+
+## Immutable Parameters
+
+## Mutable Fields
+
+## Transitions
+
+# LockProxySwitcheoMultisigWallet Contract Specification
+
+## Roles and Privileges
+
+## Immutable Parameters
+
+## Mutable Fields
+
+## Transitions
+
+# SwitcheoTokenZRC2 Contract Specification
+
+## Roles and Privileges
+
+## Immutable Parameters
+
+## Mutable Fields
+
+## Transitions
 
 # More on cross chain infrastructure
 
