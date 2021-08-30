@@ -299,6 +299,33 @@ The table below presents the mutable fields of the contract and their initial va
 
 ## Transitions
 
+### Housekeeping Transitions
+
+| Name        | Params     | Description | Callable when paused? | Callable when not paused? | 
+| ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
+| `Pause` | ``| Pause the contract temporarily to stop any critical transition from being invoked. | :heavy_check_mark: | :heavy_check_mark: |
+| `Unpause` | ``| Un-pause the contract to re-allow the invocation of all transitions. | :heavy_check_mark: | :heavy_check_mark: |
+| `UpdateAdmin` | `newAdmin: ByStr20` | Set a new `stagingcontractadmin` by `newAdmin`.| :heavy_check_mark: | :heavy_check_mark: |
+| `ClaimAdmin` | `` | Claim to be new `contract admin`. | :heavy_check_mark: | :heavy_check_mark: 
+
+
+### Business Transitions
+
+| Name | Params | Description | Callable when paused? | Callable when not paused? | 
+|--|--|--|:----:|:----:|
+|`lock`| `tokenAddr: ByStr20, targetProxyHash: ByStr, toAddress: ByStr, toAssetHash: ByStr, feeAddr: ByStr, amount: Uint256, feeAmount: Uint256` | Invoked by the user, a certin amount tokens will be locked in the proxy contract the invoker/msg.sender immediately, then the same amount of tokens will be unloked from target chain proxy contract at the target chain with chainId later.| <center>:x:</center> | :heavy_check_mark: |
+|`unlock`| `args: ByStr, fromContractAddr: ByStr, fromChainId: Uint64` | Invoked by the Zilliqa crosschain management contract, then mint a certin amount of tokens to the designated address since a certain amount was burnt from the source chain invoker.| <center>:x:</center> | :heavy_check_mark: |
+|`registerAsset`| `args: ByStr, fromContractAddr: ByStr, fromChainId: Uint64` | Marks an asset as registered by mapping the asset address to the specified. | <center>:x:</center> | :heavy_check_mark: |
+
+### Admin Transitions
+
+| Name | Params | Description | Callable when paused? | Callable when not paused? | 
+|--|--|--|:----:|:----:|
+|`WithdrawZIL`| `amount: Uint128` | Withdraw native zils to admin acount|:heavy_check_mark: | <center>:x:</center> |
+|`WithdWithdrawZRC2rawZIL`| `token: ByStr20, amount: Uint128` | Withdraw zrc2 token to admin acount|:heavy_check_mark: | <center>:x:</center> |
+|`SetManager`| `new_manager: ByStr20` | Setup cross chain manager contract|<center>:x:</center> | <center>:x:</center> |
+|`SetManagerProxy`| `new_manager_proxy: ByStr20` | Setup cross chain manager proxy contract|<center>:x:</center> | <center>:x:</center> |
+
 # CCMMultisigWalet Contract Specification
 
 ## Roles and Privileges
