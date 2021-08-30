@@ -4,10 +4,42 @@
 
 - [Overview](#overview)
 - [ZilCrossChainManager Contract Specification](#zilcrosschainmanager-contract-specification)
+  * [Roles and Privileges](#roles-and-privileges)
+  * [Data Types](#data-types)
+  * [Immutable Parameters](#immutable-parameters)
+  * [Mutable Fields](#mutable-fields)
+  * [Transitions](#transitions)
+    + [Housekeeping Transitions](#housekeeping-transitions)
+    + [Crosschain Transitions](#crosschain-transitions)
+    + [Upgrading Transitions](#upgrading-transitions)
 - [ZilCrossChainManagerProxy Contract Specification](#zilcrosschainmanagerproxy-contract-specification)
+  * [Roles and Privileges](#roles-and-privileges)
+  * [Immutable Parameters](#immutable-parameters)
+  * [Mutable Fields](#mutable-fields)
+  * [Transitions](#transitions)
+    + [Housekeeping Transitions](#housekeeping-transitions)
+    + [Relay Transitions](#relay-transitions)
 - [LockProxy Contract Specification](#lockproxy-contract-specification)
+  * [Roles and Privileges](#roles-and-privileges)
+  * [Immutable Parameters](#immutable-parameters)
+  * [Mutable Fields](#mutable-fields)
+  * [Transitions](#transitions)
 - [LockProxySwitcheo Contract Specification](#lockproxyswitcheo-contract-specification)
+  * [Roles and Privileges](#roles-and-privileges)
+  * [Immutable Parameters](#immutable-parameters)
+  * [Mutable Fields](#mutable-fields)
+  * [Transitions](#transitions)
+    + [Housekeeping Transitions](#housekeeping-transitions)
+    + [Bridge Transitions](#bridge-transitions)
+    + [Admin Transitions](#admin-transitions)
 - [Multi-signature Wallet Contract Specification](#multi-sigature)
+  * [General Flow](#general-flow)
+  * [Roles and Privileges](#roles-and-privileges-2)
+  * [Immutable Parameters](#immutable-parameters-2)
+  * [Mutable Fields](#mutable-fields-2)
+  * [Transitions](#transitions-2)
+    + [Submit Transitions](#submit-transitions)
+    + [Action Transitions](#action-transitions)
 - [SwitcheoTokenZRC2 Contract Specification](#switcheotokenzrc2-contract-specification)
 - [More on cross chain infrastructure](#more-on-cross-chain-infrastructure)
 
@@ -308,7 +340,7 @@ The table below presents the mutable fields of the contract and their initial va
 | `ClaimAdmin` |  | Claim to be new `contract admin`. | :heavy_check_mark: | :heavy_check_mark: 
 
 
-### Business Transitions
+### Bridge Transitions
 
 | Name | Params | Description | Callable when paused? | Callable when not paused? | 
 |--|--|--|:----:|:----:|
@@ -322,8 +354,8 @@ The table below presents the mutable fields of the contract and their initial va
 |--|--|--|:----:|:----:|
 |`WithdrawZIL`| `amount: Uint128` | Withdraw native zils to admin acount|:heavy_check_mark: | <center>:x:</center> |
 |`WithdWithdrawZRC2rawZIL`| `token: ByStr20, amount: Uint128` | Withdraw zrc2 token to admin acount|:heavy_check_mark: | <center>:x:</center> |
-|`SetManager`| `new_manager: ByStr20` | Setup cross chain manager contract|<center>:x:</center> | <center>:x:</center> |
-|`SetManagerProxy`| `new_manager_proxy: ByStr20` | Setup cross chain manager proxy contract|<center>:x:</center> | <center>:x:</center> |
+|`SetManager`| `new_manager: ByStr20` | Setup cross chain manager contract|:heavy_check_mark: | :heavy_check_mark: |
+|`SetManagerProxy`| `new_manager_proxy: ByStr20` | Setup cross chain manager proxy contract|:heavy_check_mark: | :heavy_check_mark: |
 
 # Multi-signature Wallet Contract Specification
 
@@ -435,6 +467,14 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitCustomWithdrawZILTransaction`| `calleeContract : ByStr20, amount: Uint128` | Submit a request to invoke the `WithdrawZIL` transition in the `LockProxySwitcheo` contract. |
 |`SubmitCustomWithdrawZRC2Transaction`| `calleeContract : ByStr20, token: ByStr20, amount: Uint128` | Submit a request to invoke the `WithdrawZRC2` transition in the `LockProxySwitcheo` contract. |
 |`SubmitCustomWithdrawZRC2Transaction`| `calleeContract : ByStr20, to: ByStr20, amount: Uint128` | Submit a request to invoke the `TransferZRC2` transition in the `LockProxySwitcheo` contract. |
+
+### Action Transitions
+
+| Name | Params | Description |
+|--|--|--|
+|`SignTransaction`| `transactionId : Uint32` | Sign off on an existing transaction. |
+|`RevokeSignature`| `transactionId : Uint32` | Revoke signature of an existing transaction, if it has not yet been executed. |
+|`ExecuteTransaction`| `transactionId : Uint32` | Execute signed-off transaction. |
 
 # SwitcheoTokenZRC2 Contract Specification
 
