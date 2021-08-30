@@ -7,8 +7,7 @@
 - [ZilCrossChainManagerProxy Contract Specification](#zilcrosschainmanagerproxy-contract-specification)
 - [LockProxy Contract Specification](#lockproxy-contract-specification)
 - [LockProxySwitcheo Contract Specification](#lockproxyswitcheo-contract-specification)
-- [CCMMultisigWalet Contract Specification](#ccmmultisigwallet-contract-specification)
-- [LockProxySwitcheoMultisigWallet Contract Specification](#lockproxyswitcheomultisigwallet-contract-specification)
+- [Multi-signature Wallet Contract Specification](#multi-sigature)
 - [SwitcheoTokenZRC2 Contract Specification](#switcheotokenzrc2-contract-specification)
 - [More on cross chain infrastructure](#more-on-cross-chain-infrastructure)
 
@@ -436,6 +435,10 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitCustomWithdrawZILTransaction`| `calleeContract : ByStr20, amount: Uint128` | Submit a request to invoke the `WithdrawZIL` transition in the `LockProxySwitcheo` contract. |
 |`SubmitCustomWithdrawZRC2Transaction`| `calleeContract : ByStr20, token: ByStr20, amount: Uint128` | Submit a request to invoke the `WithdrawZRC2` transition in the `LockProxySwitcheo` contract. |
 |`SubmitCustomWithdrawZRC2Transaction`| `calleeContract : ByStr20, to: ByStr20, amount: Uint128` | Submit a request to invoke the `TransferZRC2` transition in the `LockProxySwitcheo` contract. |
+
+# SwitcheoTokenZRC2 Contract Specification
+
+Refer to https://github.com/Zilliqa/ZRC/blob/master/zrcs/zrc-2.md but only LockProxy can mint and burn tokens.
 
 # More on cross chain infrastructure
 
