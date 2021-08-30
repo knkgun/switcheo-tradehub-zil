@@ -26,6 +26,7 @@
   * [Transitions](#transitions)
 - [LockProxySwitcheo Contract Specification](#lockproxyswitcheo-contract-specification)
   * [Roles and Privileges](#roles-and-privileges)
+  * [Data Types](#data-types)
   * [Immutable Parameters](#immutable-parameters)
   * [Mutable Fields](#mutable-fields)
   * [Transitions](#transitions)
@@ -303,6 +304,52 @@ The table below describes the roles and privileges that this contract defines:
 | `admin`    | Current `admin` of the contract initialized to `init_admin`. Certain critical actions can only be performed by the `admin`. |
 | `init_manager_proxy` | The initial cross chain manager proxy address. |
 | `init_manager` | The initial cross chain manager address. |
+
+
+The contract defines and uses several custom ADTs that we describe below:
+
+1. Error Data Type:
+
+```ocaml
+type Error = 
+  | AdminValidationFailed
+  | AmountCannotBeZero
+  | LockAmountMismatch
+  | ManagerValidationFailed
+  | IllegalAmount
+  | EmptyFromProxy
+  | IllegalFromChainId
+  | IllegalRegisterAssetArgs
+  | AssetAlreadyRegistered
+  | AssetNotRegistered
+  | EmptyHashStr
+  | InvalidFeeAmount
+  | InvalidFromChainId
+  | InvalidUnlockArgs
+  | DeserializeRegisterAssetArgsFail
+  | StagingAdminValidationFailed
+  | StagingAdminNotExist
+  | ContractPaused
+  | ContractNotPaused
+```
+
+2. Cross-Chain Transaction Data Type:
+
+```ocaml
+(* toAssetHash, toAddress, amount *)
+type TxArgs = 
+| TxArgs of ByStr ByStr Uint256
+
+(* used for corss-chain registerAsset method *)
+(* assetHash, nativeAssetHash *)
+type RegisterAssetTxArgs = 
+| RegisterAssetTxArgs of ByStr ByStr
+
+(* used for cross-chain lock and unlock methods *)
+(* fromAssetHash toAssetHash toAddress fromAddress amount feeAmount feeAddress nonce *)
+type TransferTxArgs =
+| TransferTxArgs of ByStr ByStr ByStr ByStr Uint256 Uint256 ByStr Uint256
+```
 
 
 ## Immutable Parameters
