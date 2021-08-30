@@ -451,7 +451,7 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitCustomPopulateWhiteListMethodTransaction`| `calleeContract : ByStr20, method: String, val: Bool` | Submit a request to invoke the `PopulateWhiteListMethod` transition in the `ZilCrossChainManagerProxy` contract. |
 |`SubmitCustomPopulateConKeepersPublicKeyListTransaction`| `calleeContract : ByStr20, keepers: List ByStr20` | Submit a request to invoke the `PopulateConKeepersPublicKeyList` transition in the `ZilCrossChainManagerProxy` contract. |
 |`SubmitCustomPopulateCurEpochStartHeightTransaction`| `calleeContract : ByStr20, height: Uint32` | Submit a request to invoke the `PopulateCurEpochStartHeight` transition in the `ZilCrossChainManagerProxy` contract. |
-|`SubmitCustomPSubmitCustomPopulateZilToPolyTxHashMapTransactionopulateCurEpochStartHeightTransaction`| `calleeContract : ByStr20, index: Uint256, val: ByStr32` | Submit a request to invoke the `PopulateZilToPolyTxHashMap` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPopulateZilToPolyTxHashMapTransaction`| `calleeContract : ByStr20, index: Uint256, val: ByStr32` | Submit a request to invoke the `PopulateZilToPolyTxHashMap` transition in the `ZilCrossChainManagerProxy` contract. |
 |`SubmitCustomPopulateZilToPolyTxHashIndexTransaction`| `calleeContract : ByStr20, index: Uint256` | Submit a request to invoke the `PopulateZilToPolyTxHashIndex` transition in the `ZilCrossChainManagerProxy` contract. |
 |`SubmitCustomPopulateFromChainTxExistTransaction`| `calleeContract : ByStr20, chainId: Uint64, txId: ByStr32` | Submit a request to invoke the `PopulateFromChainTxExist` transition in the `ZilCrossChainManagerProxy` contract. |
 
