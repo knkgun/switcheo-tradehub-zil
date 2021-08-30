@@ -187,7 +187,7 @@ All the transitions in the contract can be categorized into two categories:
 |--|--|--|
 |`UpgradeTo`| `new_crosschain_manager : ByStr20` |  Change the current implementation address of the `ZilCrossChainManager` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition|
 |`ChangeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `stagingadmin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
-|`ClaimProxyAdmin` | `` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `stagingadmin` can invoke this transition.|
+|`ClaimProxyAdmin` |  |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `stagingadmin` can invoke this transition.|
 
 ### Relay Transitions
 
@@ -283,7 +283,7 @@ The table below lists the parameters that are defined at the contract deployment
 |`init_admin`| `ByStr20` | The address of the admin. |
 |`init_manager_proxy`| `ByStr20` | The initial cross chain manager proxy address. |
 |`init_manager`| `ByStr20` | The initial cross chain manager address. |
-|`init_counterpart_chainId`| The initial counterpart chain id. |
+|`init_counterpart_chainId`| `Uint64` | The initial counterpart chain id. |
 
 ## Mutable Fields
 
@@ -303,10 +303,10 @@ The table below presents the mutable fields of the contract and their initial va
 
 | Name        | Params     | Description | Callable when paused? | Callable when not paused? | 
 | ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
-| `Pause` | ``| Pause the contract temporarily to stop any critical transition from being invoked. | :heavy_check_mark: | :heavy_check_mark: |
-| `Unpause` | ``| Un-pause the contract to re-allow the invocation of all transitions. | :heavy_check_mark: | :heavy_check_mark: |
+| `Pause` | | Pause the contract temporarily to stop any critical transition from being invoked. | :heavy_check_mark: | :heavy_check_mark: |
+| `Unpause` | | Un-pause the contract to re-allow the invocation of all transitions. | :heavy_check_mark: | :heavy_check_mark: |
 | `UpdateAdmin` | `newAdmin: ByStr20` | Set a new `stagingcontractadmin` by `newAdmin`.| :heavy_check_mark: | :heavy_check_mark: |
-| `ClaimAdmin` | `` | Claim to be new `contract admin`. | :heavy_check_mark: | :heavy_check_mark: 
+| `ClaimAdmin` |  | Claim to be new `contract admin`. | :heavy_check_mark: | :heavy_check_mark: 
 
 
 ### Business Transitions
@@ -326,35 +326,116 @@ The table below presents the mutable fields of the contract and their initial va
 |`SetManager`| `new_manager: ByStr20` | Setup cross chain manager contract|<center>:x:</center> | <center>:x:</center> |
 |`SetManagerProxy`| `new_manager_proxy: ByStr20` | Setup cross chain manager proxy contract|<center>:x:</center> | <center>:x:</center> |
 
-# CCMMultisigWalet Contract Specification
+# Multi-signature Wallet Contract Specification
+
+This contract has two main roles. First, it holds funds that can be paid out to
+arbitrary users, provided that enough people from a pre-defined set of owners
+have signed off on the payout.
+
+Second, and more generally, it also represents a group of users that can invoke
+a transition in another contract only if enough people in that group have
+signed off on it. In the staking context, it represents the `admin` in the
+`SSNList` contract. This provides added security for the privileged `admin`
+role.
+
+## General Flow
+
+Any transaction request (whether transfer of payments or invocation of a
+foreign transition) must be added to the contract before signatures can be
+collected. Once enough signatures are collected, the recipient (in case of
+payments) and/or any of the owners (in the general case) can ask for the
+transaction to be executed.
+
+If an owner changes his mind about a transaction, the signature can be revoked
+until the transaction is executed.
+
+This wallet does not allow adding or removing owners, or changing the number of
+required signatures. To do any of those, perform the following steps:
+
+1. Deploy a new wallet with `owners` and `required_signatures` set to the new values. `MAKE SURE THAT THE NEW WALLET HAS BEEN SUCCESFULLY DEPLOYED WITH THE CORRECT PARAMETERS BEFORE CONTINUING!`
+2. Invoke the `SubmitTransaction` transition on the old wallet with the following parameters:
+   - `recipient` : The `address` of the new wallet
+   - `amount` : The `_balance` of the old wallet
+   - `tag` : `AddFunds`
+3. Have (a sufficient number of) the owners of the old contract invoke the `SignTransaction` transition on the old wallet. The parameter `transactionId` should be set to the `Id` of the transaction created in step 2.
+4. Have one of the owners of the old contract invoke the `ExecuteTransaction` transition on the old contract. This will cause the entire balance of the old contract to be transferred to the new wallet. Note that no un-executed transactions will be transferred to the new wallet along with the funds.
+
+> WARNING: If a sufficient number of owners lose their private keys, or for any other reason are unable or unwilling to sign for new transactions, the funds in the wallet will be locked forever. It is therefore a good idea to set required_signatures to a value strictly less than the number of owners, so that the remaining owners can retrieve the funds should such a scenario occur.
+<br> <br> If an owner loses his private key, the remaining owners should move the funds to a new wallet (using the workflow described above) to  ensure that funds are not locked if another owner loses his private key. The owner who originally lost his private key can generate a new key, and the corresponding address be added to the new wallet, so that the same set of people own the new wallet.
 
 ## Roles and Privileges
 
-## Immutable Parameters
+The table below list the different roles defined in the contract.
 
-## Mutable Fields
-
-## Transitions
-
-# LockProxySwitcheoMultisigWallet Contract Specification
-
-## Roles and Privileges
+| Name | Description & Privileges |
+|--|--|
+|`owners` | The users who own this contract. |
 
 ## Immutable Parameters
 
-## Mutable Fields
+The table below lists the parameters that are defined at the contract deployment time and hence cannot be changed later on.
 
-## Transitions
-
-# SwitcheoTokenZRC2 Contract Specification
-
-## Roles and Privileges
-
-## Immutable Parameters
+| Name | Type | Description |
+|--|--|--|
+|`owners_list`| `List ByStr20` | List of initial owners. |
+|`required_signatures`| `Uint32` | Minimum amount of signatures to execute a transaction. |
 
 ## Mutable Fields
 
+The table below presents the mutable fields of the contract and their initial values.
+
+| Name | Type | Initial Value | Description |
+|--|--|--|--|
+|`owners`| `Map ByStr20 Bool` | `owners_list` | Map of owners. |
+|`transactionCount`| `Uint32` | `0` | The number of of transactions  requests submitted so far. |
+|`signatures`| `Map Uint32 (Map ByStr20 Bool)` | `Emp Uint32 (Map ByStr20 Bool)` | Collected signatures for transactions by transaction ID. |
+|`signature_counts`| `Map Uint32 Uint32` | `Emp Uint32 Uint32` | Running count of collected signatures for transactions. |
+|`transactions`| `Map Uint32 Transaction` | `Emp Uint32 Transaction` | Transactions that have been submitted but not exected yet. |
+
 ## Transitions
+
+All the transitions in the contract can be categorized into three categories:
+- **Submit Transitions:** Create transactions for future signoff.
+- **Action Transitions:** Let owners sign, revoke or execute submitted transactions.
+- The `_balance` field keeps the amount of funds held by the contract and can be freely read within the implementation. `AddFunds transition` are used for adding native funds(ZIL) to the wallet from incoming messages by using `accept` keyword.
+
+### Submit Transitions
+
+The first transition is meant to submit request for transfer of native ZILs while the other are meant to submit a request to invoke transitions in the `ZilCrossChainManagerProxy` contract or `LockProxySwitcheo` contract.
+
+#### CCMMultisigWallet
+
+| Name | Params | Description |
+|--|--|--|
+|`SubmitNativeTransaction`| `recipient : ByStr20, amount : Uint128, tag : String` | Submit a request for transfer of native tokens for future signoffs. |
+|`SubmitCustomUpgradeToTransaction`| `calleeContract : ByStr20, newCrosschainManager : ByStr20` | Submit a request to invoke the `UpgradeTo` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomChangeProxyAdminTransaction`| `calleeContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `ChangeProxyAdmin` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomClaimProxyAdminTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `ClaimProxyAdmin` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `Pause` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomUnpauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `UnPause` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomUpdateAdminTransaction`| `calleeContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `UpdateAdmin` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomClaimAdminTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `ClaimAdmin` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPopulateWhiteListFromContractTransaction`| `calleeContract : ByStr20, addr: ByStr20, val: Bool` | Submit a request to invoke the `PopulateWhiteListFromContract` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPopulateWhiteListToContractTransaction`| `calleeContract : ByStr20, addr: ByStr20, val: Bool` | Submit a request to invoke the `PopulateWhiteListToContract` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPopulateWhiteListMethodTransaction`| `calleeContract : ByStr20, method: String, val: Bool` | Submit a request to invoke the `PopulateWhiteListMethod` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPopulateConKeepersPublicKeyListTransaction`| `calleeContract : ByStr20, keepers: List ByStr20` | Submit a request to invoke the `PopulateConKeepersPublicKeyList` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPopulateCurEpochStartHeightTransaction`| `calleeContract : ByStr20, height: Uint32` | Submit a request to invoke the `PopulateCurEpochStartHeight` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPSubmitCustomPopulateZilToPolyTxHashMapTransactionopulateCurEpochStartHeightTransaction`| `calleeContract : ByStr20, index: Uint256, val: ByStr32` | Submit a request to invoke the `PopulateZilToPolyTxHashMap` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPopulateZilToPolyTxHashIndexTransaction`| `calleeContract : ByStr20, index: Uint256` | Submit a request to invoke the `PopulateZilToPolyTxHashIndex` transition in the `ZilCrossChainManagerProxy` contract. |
+|`SubmitCustomPopulateFromChainTxExistTransaction`| `calleeContract : ByStr20, chainId: Uint64, txId: ByStr32` | Submit a request to invoke the `PopulateFromChainTxExist` transition in the `ZilCrossChainManagerProxy` contract. |
+
+#### LockProxySwitcheoMultisigWallet
+
+| Name | Params | Description |
+|--|--|--|
+|`SubmitNativeTransaction`| `recipient : ByStr20, amount : Uint128, tag : String` | Submit a request for transfer of native tokens for future signoffs. |
+|`SubmitCustomPauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `Pause` transition in the `LockProxySwitcheo` contract. |
+|`SubmitCustomUnpauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `UnPause` transition in the `LockProxySwitcheo` contract. |
+|`SubmitCustomUpdateAdminTransaction`| `calleeContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `UpdateAdmin` transition in the `LockProxySwitcheo` contract. |
+|`SubmitCustomClaimAdminTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `ClaimAdmin` transition in the `LockProxySwitcheo` contract. |
+|`SubmitCustomWithdrawZILTransaction`| `calleeContract : ByStr20, amount: Uint128` | Submit a request to invoke the `WithdrawZIL` transition in the `LockProxySwitcheo` contract. |
+|`SubmitCustomWithdrawZRC2Transaction`| `calleeContract : ByStr20, token: ByStr20, amount: Uint128` | Submit a request to invoke the `WithdrawZRC2` transition in the `LockProxySwitcheo` contract. |
+|`SubmitCustomWithdrawZRC2Transaction`| `calleeContract : ByStr20, to: ByStr20, amount: Uint128` | Submit a request to invoke the `TransferZRC2` transition in the `LockProxySwitcheo` contract. |
 
 # More on cross chain infrastructure
 
