@@ -64,12 +64,6 @@ let zeroUint128 = Uint128 0
 let one = Uint32 1
 let transaction_inc = one
 
-type SSNCycleInfo =
-| SSNCycleInfo of Uint128 Uint128
-
-type SsnRewardShare =
-| SsnRewardShare of ByStr20 Uint128
-
 type Denom =
   | Zil
   | Token of ByStr20 (* token address / hash *)
