@@ -13,6 +13,7 @@ let one_msg =
 
 let bool_active = True
 let bool_inactive = False
+let unit = Unit
 
 
 type Error =
@@ -94,9 +95,9 @@ field zilToPolyTxHashIndex: Uint256 = Uint256 0
 field fromChainTxExist : Map Uint64 (Map ByStr32 Unit) = Emp Uint64 (Map ByStr32 Unit)
 field contractadmin: ByStr20  = init_admin
 field stagingcontractadmin: Option ByStr20 = None {ByStr20}
-field whiteListFromContract: Map ByStr20 Bool = Emp ByStr20 Bool
-field whiteListToContract: Map ByStr20 Bool = Emp ByStr20 Bool
-field whiteListMethod: Map String Bool = Emp String Bool
+field whiteListFromContract: Map ByStr20 Unit = Emp ByStr20 Unit
+field whiteListToContract: Map ByStr20 Unit = Emp ByStr20 Unit
+field whiteListMethod: Map String Unit = Emp String Unit
 
 (* Procedures *)
 
@@ -157,12 +158,6 @@ procedure validToContract(addr: ByStr20)
   val_opt <- whiteListToContract[addr];
   match val_opt with
   | Some val =>
-    match val with
-    | True =>
-    | False =>
-      e = InvalidToContract;
-      ThrowError e
-    end
   | None => 
     e = InvalidToContract;
     ThrowError e
@@ -173,12 +168,6 @@ procedure validMethod(method: String)
   val_opt <- whiteListMethod[method];
   match val_opt with
   | Some val =>
-    match val with
-    | True =>
-    | False =>
-      e = InvalidMethod;
-      ThrowError e
-    end
   | None => 
     e = InvalidMethod;
     ThrowError e
@@ -251,12 +240,6 @@ procedure validFromContract(addr: ByStr20)
   val_opt <- whiteListFromContract[addr];
   match val_opt with
   | Some val =>
-    match val with
-    | True =>
-    | False =>
-      e = InvalidFromContract;
-      ThrowError e
-    end
   | None => 
     e = InvalidFromContract;
     ThrowError e
@@ -536,22 +519,40 @@ transition VerifyHeaderAndExecuteTx(proof: Proof, rawHeader: ByStr, headerProof:
 end
 
 
-transition PopulateWhiteListFromContract(addr: ByStr20, val: Bool, initiator: ByStr20)
+transition PopulateWhiteListFromContract(addr: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  whiteListFromContract[addr] := val
+  whiteListFromContract[addr] := unit
 end
 
-transition PopulateWhiteListToContract(addr: ByStr20, val: Bool, initiator: ByStr20)
+transition DeleteWhiteListFromContract(addr: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  whiteListToContract[addr] := val
+  delete whiteListFromContract[addr]
 end
 
-transition PopulateWhiteListMethod(method: String, val: Bool, initiator: ByStr20)
+transition PopulateWhiteListToContract(addr: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  whiteListMethod[method] := val
+  whiteListToContract[addr] := unit
+end
+
+transition DeleteWhiteListToContract(addr: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  delete whiteListToContract[addr]
+end
+
+transition PopulateWhiteListMethod(method: String, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  whiteListMethod[method] := unit
+end
+
+transition DeleteWhiteListMethod(method: String, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  delete whiteListMethod[method]
 end
 
 transition PopulateConKeepersPublicKeyList(keepers: List ByStr20, initiator: ByStr20)
