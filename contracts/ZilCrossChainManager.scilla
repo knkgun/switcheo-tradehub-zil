@@ -13,8 +13,6 @@ let one_msg =
 
 let bool_active = True
 let bool_inactive = False
-let unit = Unit
-
 
 type Error =
   | ContractFrozenFailure
