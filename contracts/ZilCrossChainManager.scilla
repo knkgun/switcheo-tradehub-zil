@@ -326,6 +326,7 @@ end
 (* @param rawHeader: Poly chain genesis block raw header or raw  *)
 (*        Header including switching consensus peers info        *)
 (* @param pubkeys:  Poly chain consensus nodes public key list.  *)
+(* @param initiator: Wallet used by poly cli.  *)
 transition InitGenesisBlock(rawHeader: ByStr, pubkeys: List Pubkey, initiator: ByStr20)
   IsProxy;
   IsNotPaused;
@@ -359,6 +360,7 @@ end
 (* @param rawHeader: Poly chain change book keeper block raw header *)
 (* @param pubkeys:  Poly chain consensus nodes public key list. *)
 (* @param sigList:  Poly chain consensus nodes signature list.  *)
+(* @param initiator:  Relayer zilliqa address.  *)
 transition ChangeBookKeeper(rawHeader: ByStr, pubkeys: List Pubkey, sigList: List Signature, initiator: ByStr20)
   IsProxy;
   IsNotPaused;
@@ -444,6 +446,7 @@ end
 (* @param curRawHeader:  Any header in current epoch consensus of Poly chain                   *)
 (* @param headerSig: The coverted signature veriable for solidity derived from Poly chain      *)
 (*                   consensus nodes signature  used to verify the validity of curRawHeader    *)
+(* @param initiator:  Relayer zilliqa address.  *)
 transition VerifyHeaderAndExecuteTx(proof: Proof, rawHeader: ByStr, headerProof: Proof, curRawHeader: ByStr, headerSig: List Signature, initiator: ByStr20)
   IsProxy;
   IsNotPaused;
