@@ -540,6 +540,12 @@ transition PopulateOperators(addr: ByStr20, initiator: ByStr20)
   operators[addr] := unit
 end
 
+transition DeleteOperators(addr: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  delete operators[addr]
+end
+
 transition PopulateWhiteListFromContract(addr: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
