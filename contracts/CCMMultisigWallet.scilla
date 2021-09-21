@@ -85,6 +85,8 @@ type CalleeTransaction =
 | UpdateAdmin of ByStr20
 (* ClaimAdmin() *)
 | ClaimAdmin
+(* PopulateOperators(addr: ByStr20) *)
+| PopulateOperators of ByStr20
 (* PopulateWhiteListFromContract(addr: ByStr20) *)
 | PopulateWhiteListFromContract of ByStr20
 (* DeleteWhiteListFromContract(addr: ByStr20)*)
@@ -187,6 +189,12 @@ let custom_transaction_msg_as_list =
         {_recipient: calleeContract;
          _tag: "ClaimAdmin";
          _amount: Uint128 0}
+        (* PopulateOperators(addr: ByStr20) *)
+      | PopulateOperators addr =>
+        {_recipient: calleeContract;
+         _tag: "PopulateOperators";
+         _amount: Uint128 0;
+         addr: addr}
         (* PopulateWhiteListFromContract(addr: ByStr20) *)
       | PopulateWhiteListFromContract addr =>
         {_recipient: calleeContract;
@@ -497,6 +505,11 @@ end
 (* Submit a new ClaimAdmin transaction for future signoff *)
 transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
   transaction = ClaimAdmin;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateOperatorsTransaction(calleeContract: ByStr20, addr: ByStr20)
+  transaction = PopulateOperators addr;
   SubmitCustomTransaction calleeContract transaction
 end
 
