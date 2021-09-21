@@ -151,6 +151,13 @@ transition PopulateWhiteListFromContract(addr: ByStr20)
   send msgs
 end
 
+transition DeleteWhiteListFromContract(addr: ByStr20)
+  current_impl <- crosschain_manager;
+  msg = {_tag: "DeleteWhiteListFromContract"; _recipient: current_impl; _amount: zero; addr: addr; initiator: _sender};
+  msgs = one_msg msg;
+  send msgs
+end
+
 transition PopulateOperators(addr: ByStr20)
   current_impl <- crosschain_manager;
   msg = {_tag: "PopulateOperators"; _recipient: current_impl; _amount: zero; addr: addr; initiator: _sender};
@@ -165,12 +172,6 @@ transition DeleteOperators(addr: ByStr20)
   send msgs
 end
 
-transition DeleteWhiteListFromContract(addr: ByStr20)
-  current_impl <- crosschain_manager;
-  msg = {_tag: "DeleteWhiteListFromContract"; _recipient: current_impl; _amount: zero; addr: addr; initiator: _sender};
-  msgs = one_msg msg;
-  send msgs
-end
 
 transition PopulateWhiteListToContract(addr: ByStr20)
   current_impl <- crosschain_manager;

@@ -183,9 +183,7 @@ procedure ValidateOperator(addr: ByStr20)
     e = InvalidOperator;
     ThrowError e
   end
-  
 end
-
 
 procedure executeCrossChainTxn (txparam: TxParam, fromChainId: Uint64, crossChainTxHash: ByStr)
   match txparam with
