@@ -91,12 +91,18 @@ type CalleeTransaction =
 | UpdateAdmin of ByStr20
 (* ClaimAdmin() *)
 | ClaimAdmin
-(* PopulateWhiteListFromContract(addr: ByStr20, val: Bool) *)
-| PopulateWhiteListFromContract of ByStr20 Bool
-(* PopulateWhiteListToContract(addr: ByStr20, val: Bool) *)
-| PopulateWhiteListToContract of ByStr20 Bool
-(* PopulateWhiteListMethod(method: String, val: Bool) *)
-| PopulateWhiteListMethod of String Bool
+(* PopulateWhiteListFromContract(addr: ByStr20) *)
+| PopulateWhiteListFromContract of ByStr20
+(* DeleteWhiteListFromContract(addr: ByStr20)*)
+| DeleteWhiteListFromContract of ByStr20
+(* PopulateWhiteListToContract(addr: ByStr20) *)
+| PopulateWhiteListToContract of ByStr20
+(* DeleteWhiteListToContract(addr: ByStr20)*)
+| DeleteWhiteListToContract of ByStr20
+(* PopulateWhiteListMethod(method: String) *)
+| PopulateWhiteListMethod of String
+(* DeleteWhiteListMethod(method: String) *)
+| DeleteWhiteListMethod of ByStr20
 (* PopulateConKeepersPublicKeyList(keepers: List ByStr20) *)
 | PopulateConKeepersPublicKeyList of (List ByStr20)
 (* PopulateCurEpochStartHeight(height: Uint32) *)
@@ -187,53 +193,68 @@ let custom_transaction_msg_as_list =
         {_recipient: calleeContract;
          _tag: "ClaimAdmin";
          _amount: Uint128 0}
-        (* PopulateWhiteListFromContract(addr: ByStr20, val: Bool) *)
-      | PopulateWhiteListFromContract addr val =>
+        (* PopulateWhiteListFromContract(addr: ByStr20) *)
+      | PopulateWhiteListFromContract addr =>
         {_recipient: calleeContract;
          _tag: "PopulateWhiteListFromContract";
          _amount: Uint128 0;
-         addr: addr;
-         val: val}
-      (* PopulateWhiteListToContract(addr: ByStr20, val: Bool) *)
-      | PopulateWhiteListToContract addr val =>
+         addr: addr}
+        (* DeleteWhiteListFromContract(addr: ByStr20) *) 
+      | DeleteWhiteListFromContract addr =>
+        {_recipient: calleeContract;
+        _tag: "DeleteWhiteListFromContract";
+        _amount: Uint128 0;
+        addr: addr}
+        (* PopulateWhiteListToContract(addr: ByStr20) *)
+      | PopulateWhiteListToContract addr =>
         {_recipient: calleeContract;
          _tag: "PopulateWhiteListToContract";
          _amount: Uint128 0;
-         addr: addr;
-         val: val}
-      (* PopulateWhiteListMethod(method: String, val: Bool) *)
-      | PopulateWhiteListMethod method val =>
+         addr: addr}
+        (* DeleteWhiteListToContract(addr: ByStr20)*)
+      | DeleteWhiteListToContract addr =>
+        {_recipient: calleeContract;
+         _tag: "DeleteWhiteListToContract";
+         _amount: Uint128 0;
+         addr: addr}
+        (* PopulateWhiteListMethod(method: String) *)
+      | PopulateWhiteListMethod method =>
         {_recipient: calleeContract;
          _tag: "PopulateWhiteListMethod";
          _amount: Uint128 0;
-         method: method;
-         val: val}
-      (* PopulateConKeepersPublicKeyList(keepers: List ByStr20) *)
+         method: method}
+        (* DeleteWhiteListMethod(method: String) *)
+      | DeleteWhiteListMethod method =>
+        {_recipient: calleeContract;
+        _tag: "DeleteWhiteListMethod";
+        _amount: Uint128 0;
+        method: method}
+        (* PopulateConKeepersPublicKeyList(keepers: List ByStr20) *)
       | PopulateConKeepersPublicKeyList keepers =>
         {_recipient: calleeContract;
          _tag: "PopulateConKeepersPublicKeyList";
          _amount: Uint128 0;
          keepers: keepers}
-      (* PopulateCurEpochStartHeight(height: Uint32) *)
+        (* PopulateCurEpochStartHeight(height: Uint32) *)
       | PopulateCurEpochStartHeight height =>
         {_recipient: calleeContract;
          _tag: "PopulateCurEpochStartHeight";
          _amount: Uint128 0;
          height: height}
-      (* PopulateZilToPolyTxHashMap(index: Uint256, val: ByStr32) *)
+        (* PopulateZilToPolyTxHashMap(index: Uint256, val: ByStr32) *)
       | PopulateZilToPolyTxHashMap index val =>
         {_recipient: calleeContract;
          _tag: "PopulateZilToPolyTxHashMap";
          _amount: Uint128 0;
          index: index;
          val: val}
-      (* PopulateZilToPolyTxHashIndex(index: Uint256) *)
+        (* PopulateZilToPolyTxHashIndex(index: Uint256) *)
       | PopulateZilToPolyTxHashIndex index =>
         {_recipient: calleeContract;
          _tag: "PopulateZilToPolyTxHashIndex";
          _amount: Uint128 0;
          index: index}
-      (* PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32)*)
+        (* PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32)*)
       | PopulateFromChainTxExist chainId txId =>
         {_recipient: calleeContract;
          _tag: "PopulateFromChainTxExist";
@@ -485,19 +506,33 @@ transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
   SubmitCustomTransaction calleeContract transaction
 end
 
-transition SubmitCustomPopulateWhiteListFromContractTransaction(calleeContract: ByStr20, addr: ByStr20, val: Bool)
-  transaction = PopulateWhiteListFromContract addr val;
+transition SubmitCustomPopulateWhiteListFromContractTransaction(calleeContract: ByStr20, addr: ByStr20)
+  transaction = PopulateWhiteListFromContract addr;
   SubmitCustomTransaction calleeContract transaction
 end
 
-transition SubmitCustomPopulateWhiteListToContractTransaction(calleeContract: ByStr20, addr: ByStr20, val: Bool)
-  transaction = PopulateWhiteListToContract addr val;
+transition SubmitCustomDeleteWhiteListFromContractTransaction(calleeContract: ByStr20, addr: ByStr20)
+  transaction = DeleteWhiteListFromContract addr;
   SubmitCustomTransaction calleeContract transaction
 end
 
+transition SubmitCustomPopulateWhiteListToContractTransaction(calleeContract: ByStr20, addr: ByStr20)
+  transaction = PopulateWhiteListToContract addr;
+  SubmitCustomTransaction calleeContract transaction
+end
 
-transition SubmitCustomPopulateWhiteListMethodTransaction(calleeContract: ByStr20, method: String, val: Bool)
-  transaction = PopulateWhiteListMethod method val;
+transition SubmitCustomDeleteWhiteListToContractTransaction(calleeContract: ByStr20, addr: ByStr20)
+  transaction = DeleteWhiteListToContract addr;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateWhiteListMethodTransaction(calleeContract: ByStr20, method: String)
+  transaction = PopulateWhiteListMethod method;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomDeleteWhiteListMethodTransaction(calleeContract: ByStr20, addr: ByStr20)
+  transaction = DeleteWhiteListMethod addr;
   SubmitCustomTransaction calleeContract transaction
 end
 
