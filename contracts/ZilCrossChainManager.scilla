@@ -72,6 +72,7 @@ contract ZilCrossChainManager(
   init_admin: ByStr20
 )
 
+field thisChainId: Uint64 = this_chain_id
 field paused: Bool = True
 (* When Poly chain switches the consensus epoch book keepers, *)
 (* the consensus peers public keys of Poly chain should be    *)
@@ -175,7 +176,8 @@ end
 procedure executeCrossChainTxn (txparam: TxParam, fromChainId: Uint64, crossChainTxHash: ByStr)
   match txparam with
   | TxParam txHash crossChainID fromContract toChainID toContract method args =>
-    toChainIDOk = builtin eq toChainID this_chain_id;
+    chainId <- thisChainId;
+    toChainIDOk = builtin eq toChainID chainId;
     match toChainIDOk with
     | True =>
       toContractAddr_o = builtin to_bystr20 toContract;
@@ -301,6 +303,12 @@ transition UnPause(initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   paused := bool_inactive
+end
+
+transition UpdateChainId(chainId: Uint64, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  thisChainId := chainId
 end
 
 (***************************************************)

@@ -81,6 +81,8 @@ type CalleeTransaction =
 | Pause
 (* UnPause() *)
 | UnPause
+(* UpdateChainId(chainId: Uint64) *)
+| UpdateChainId of Uint64
 (* UpdateAdmin(newAdmin: ByStr20) *)
 | UpdateAdmin of ByStr20
 (* ClaimAdmin() *)
@@ -176,6 +178,12 @@ let custom_transaction_msg_as_list =
         {_recipient: calleeContract ;
          _tag: "UnPause";
          _amount: Uint128 0}
+        (* UpdateChainId(chainId: Uint64) *)
+      | UpdateChainId chainId =>
+        {_recipient: calleeContract ;
+        _tag: "UnPause";
+        _amount: Uint128 0;
+        chainId: chainId}
         (* UpdateAdmin(newAdmin: ByStr20) *)
       | UpdateAdmin newAdmin =>
         {_recipient: calleeContract;
@@ -485,6 +493,13 @@ end
 (* Submit a new unpause transaction for future signoff *)
 transition SubmitCustomUnpauseTransaction(calleeContract: ByStr20)
   transaction = UnPause;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+
+(* Submit a new updateChainId transaction for future signoff *)
+transition SubmitCustomUpdateChainIdTransaction(calleeContract: ByStr20, chainId: Uint64)
+  transaction = UpdateChainId chainId;
   SubmitCustomTransaction calleeContract transaction
 end
 
