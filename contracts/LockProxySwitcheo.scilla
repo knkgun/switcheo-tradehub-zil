@@ -686,7 +686,7 @@ end
 
 transition AddFunds()
   accept;
-  e = { _eventname : "Funds deposit "; funder : _sender };
+  e = { _eventname : "Funds deposit "; funder : _sender; amount: _amount };
   event e
 end
 
