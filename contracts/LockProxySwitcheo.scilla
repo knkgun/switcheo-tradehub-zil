@@ -262,17 +262,6 @@ procedure increaseNonce()
  nonce := new_nonce
 end
 
-procedure validateFromChainId(fromChainId: Uint64)
-  counter_part_id <- counterpart_chainId;
-  equal = builtin eq counter_part_id fromChainId;
-  match equal with
-  | True =>
-  | False =>
-    e = InvalidFromChainId;
-    ThrowError e
-  end
-end
-
 (* lock amount should not be zero *)
 procedure validateAmount(amount: Uint128)
   is_zero = builtin eq amount uint128_zero;
@@ -634,7 +623,7 @@ transition unlock(
 )
   isNotPaused;
   IsManagerContract _sender;
-  validateFromChainId fromChainId;
+  ValidateCounterpartChainId fromChainId;
   transfer_tx_args_o = deserialize_transfer_tx_args args uint32_zero;
   match transfer_tx_args_o with
   | Some (TransferTxArgs fromAssetHash toAssetHash toAddress fromAddress amount feeAmount feeAddress n) =>
@@ -712,4 +701,13 @@ end
 transition TransferFromSuccessCallBack(initiator: ByStr20, sender: ByStr20, recipient: ByStr20, amount: Uint128)
 end
 
+transition PopulateNonce(n: Uint256)
+  IsAdmin _sender;
+  nonce := n
+end
+
+transition PopulateRegister(asset: ByStr20, hash: ByStr32)
+  IsAdmin _sender;
+  register[asset] := hash
+end
 

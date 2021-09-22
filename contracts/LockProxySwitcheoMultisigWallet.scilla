@@ -86,6 +86,10 @@ type CalleeTransaction =
 | SetManager of ByStr20
 (* SetManagerProxy(new_manager_proxy: ByStr20) *)
 | SetManagerProxy of ByStr20
+(* PopulateNonce(n: Uint256) *)
+| PopulateNonce of Uint256
+(* PopulateRegister(asset: ByStr20, hash: ByStr32) *)
+| PopulateRegister of ByStr20 ByStr32
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -180,6 +184,19 @@ let custom_transaction_msg_as_list =
          _tag: "SetManagerProxy";
          _amount: Uint128 0;
          new_manager_proxy: new_manager_proxy}
+        (* PopulateNonce(n: Uint256) *)
+      | PopulateNonce n =>
+       {_recipient: calleeContract;
+        _tag: "PopulateNonce";
+        _amount: Uint128 0;
+        n: n}
+       (* PopulateRegister(asset: ByStr20, hash: ByStr32) *)
+      | PopulateRegister asset hash =>
+       {_recipient: calleeContract;
+        _tag: "PopulateRegister";
+        _amount: Uint128 0;
+        asset: asset;
+        hash: hash}
       end
     in
     one_msg msg
@@ -407,6 +424,18 @@ end
 (* Submit a new Withdraw transaction for future signoff *)
 transition SubmitCustomWithdrawZRC2Transaction(calleeContract: ByStr20, token: ByStr20, amount: Uint128)
   transaction = WithdrawZRC2 token amount;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new PopulateNonce transaction for future signoff *)
+transition SubmitCustomPopulateNonceTransaction(calleeContract: ByStr20, n: Uint256)
+  transaction = PopulateNonce n;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new PopulateRegister transaction for future signoff *)
+transition SubmitCustomPopulateRegisterTransaction(calleeContract: ByStr20, asset: ByStr20, hash: ByStr32)
+  transaction = PopulateRegister asset hash;
   SubmitCustomTransaction calleeContract transaction
 end
 
