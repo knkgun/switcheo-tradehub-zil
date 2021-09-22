@@ -284,15 +284,6 @@ procedure validateFeeAmount(feeAmount: Uint128, amount: Uint128)
   end
 end
 
-procedure validateFromProxy(fromContractAddr: ByStr)
-  is_equal = builtin eq zero_bystr fromContractAddr;
-  match is_equal with
-  | True =>
-    e = EmptyFromProxy;
-    ThrowError e
-  | False =>
-  end
-end
 
 procedure ValidateCounterpartChainId(fromChainId: Uint64)
   counterpartChainId <- counterpart_chainId;
