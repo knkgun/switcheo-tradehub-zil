@@ -64,13 +64,6 @@ let zeroUint128 = Uint128 0
 let one = Uint32 1
 let transaction_inc = one
 
-type Denom =
-  | Zil
-  | Token of ByStr20 (* token address / hash *)
-
-type Coin =
-  | Coin of Denom Uint128 (* denom, amount *)
-
 
 (* Type of Proxy transactions. *)
 (* All calls are made to the proxy contract *)
