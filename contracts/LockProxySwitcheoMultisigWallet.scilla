@@ -89,6 +89,10 @@ type CalleeTransaction =
 | WithdrawZIL of Uint128
 (* WithdrawZRC2(token: ByStr20, amount: Uint128) *)
 | WithdrawZRC2 of ByStr20 Uint128
+(* SetManager(new_manager: ByStr20) *)
+| SetManager of ByStr20
+(* SetManagerProxy(new_manager_proxy: ByStr20) *)
+| SetManagerProxy of ByStr20
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -171,6 +175,18 @@ let custom_transaction_msg_as_list =
          _amount: Uint128 0;
          token: token;
          amount: amount}
+        (* SetManager(new_manager: ByStr20) *)
+      | SetManager new_manager =>
+        {_recipient: calleeContract;
+         _tag: "SetManager";
+         _amount: Uint128 0;
+         new_manager: new_manager}
+        (* SetManagerProxy(new_manager_proxy: ByStr20) *)
+      | SetManagerProxy new_manager_proxy =>
+        {_recipient: calleeContract;
+         _tag: "SetManager";
+         _amount: Uint128 0;
+         new_manager_proxy: new_manager_proxy}
       end
     in
     one_msg msg
@@ -405,6 +421,20 @@ end
 (* calleeContract should be ZRC2 address*)
 transition SubmitCustomTransferZRC2Transaction(calleeContract: ByStr20, to: ByStr20, amount: Uint128)
   transaction = TransferZRC2 to amount;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new SetManager transaction for future signoff *)
+(* calleeContract should be ZRC2 address*)
+transition SubmitCustomSetManagerTransaction(calleeContract: ByStr20, new_manager: ByStr20)
+  transaction = SetManager new_manager;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new SetManagerProxy transaction for future signoff *)
+(* calleeContract should be ZRC2 address*)
+transition SubmitCustomSetManagerProxyTransaction(calleeContract: ByStr20, new_manager_proxy: ByStr20)
+  transaction = SetManagerProxy new_manager_proxy;
   SubmitCustomTransaction calleeContract transaction
 end
 
