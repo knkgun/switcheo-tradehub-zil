@@ -181,7 +181,7 @@ let custom_transaction_msg_as_list =
         (* UpdateChainId(chainId: Uint64) *)
       | UpdateChainId chainId =>
         {_recipient: calleeContract ;
-        _tag: "UnPause";
+        _tag: "UpdateChainId";
         _amount: Uint128 0;
         chainId: chainId}
         (* UpdateAdmin(newAdmin: ByStr20) *)
