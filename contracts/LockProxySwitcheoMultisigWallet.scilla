@@ -184,7 +184,7 @@ let custom_transaction_msg_as_list =
         (* SetManagerProxy(new_manager_proxy: ByStr20) *)
       | SetManagerProxy new_manager_proxy =>
         {_recipient: calleeContract;
-         _tag: "SetManager";
+         _tag: "SetManagerProxy";
          _amount: Uint128 0;
          new_manager_proxy: new_manager_proxy}
       end
