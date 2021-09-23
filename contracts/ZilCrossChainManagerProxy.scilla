@@ -125,14 +125,14 @@ end
 
 transition InitGenesisBlock(rawHeader: ByStr, pubkeys: List Pubkey)
   current_impl <- crosschain_manager;
-  msg = {_tag: "InitGenesisBlock"; _recipient: current_impl; _amount: zero; rawHeader: rawHeader; pubkeys: pubkeys};
+  msg = {_tag: "InitGenesisBlock"; _recipient: current_impl; _amount: zero; rawHeader: rawHeader; pubkeys: pubkeys; initiator: _sender};
   msgs = one_msg msg;
   send msgs
 end
 
 transition ChangeBookKeeper(rawHeader: ByStr, pubkeys: List Pubkey, sigList: List Signature)
   current_impl <- crosschain_manager;
-  msg = {_tag: "ChangeBookKeeper"; _recipient: current_impl; _amount: zero; rawHeader: rawHeader; pubkeys: pubkeys; sigList: sigList};
+  msg = {_tag: "ChangeBookKeeper"; _recipient: current_impl; _amount: zero; rawHeader: rawHeader; pubkeys: pubkeys; sigList: sigList; initiator: _sender};
   msgs = one_msg msg;
   send msgs
 end
@@ -146,7 +146,7 @@ end
 
 transition VerifyHeaderAndExecuteTx(proof: Proof, rawHeader: ByStr, headerProof: Proof, curRawHeader: ByStr, headerSig: List Signature)
   current_impl <- crosschain_manager;
-  msg = {_tag: "VerifyHeaderAndExecuteTx"; _recipient: current_impl; _amount: zero; proof: proof; rawHeader: rawHeader; headerProof: headerProof; curRawHeader: curRawHeader; headerSig: headerSig};
+  msg = {_tag: "VerifyHeaderAndExecuteTx"; _recipient: current_impl; _amount: zero; proof: proof; rawHeader: rawHeader; headerProof: headerProof; curRawHeader: curRawHeader; headerSig: headerSig; initiator: _sender};
   msgs = one_msg msg;
   send msgs
 end
@@ -164,6 +164,21 @@ transition DeleteWhiteListFromContract(addr: ByStr20)
   msgs = one_msg msg;
   send msgs
 end
+
+transition PopulateOperators(addr: ByStr20)
+  current_impl <- crosschain_manager;
+  msg = {_tag: "PopulateOperators"; _recipient: current_impl; _amount: zero; addr: addr; initiator: _sender};
+  msgs = one_msg msg;
+  send msgs
+end
+
+transition DeleteOperators(addr: ByStr20)
+  current_impl <- crosschain_manager;
+  msg = {_tag: "DeleteOperators"; _recipient: current_impl; _amount: zero; addr: addr; initiator: _sender};
+  msgs = one_msg msg;
+  send msgs
+end
+
 
 transition PopulateWhiteListToContract(addr: ByStr20)
   current_impl <- crosschain_manager;
@@ -224,6 +239,13 @@ end
 transition PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32)
   current_impl <- crosschain_manager;
   msg = {_tag: "PopulateFromChainTxExist"; _recipient: current_impl; _amount: zero; chainId: chainId; txId: txId; initiator: _sender};
+  msgs = one_msg msg;
+  send msgs
+end
+
+transition PopulateNeedToBeValidator(val: Bool)
+  current_impl <- crosschain_manager;
+  msg = {_tag: "PopulateNeedToBeValidator"; _recipient: current_impl; _amount: zero; val: val; initiator: _sender};
   msgs = one_msg msg;
   send msgs
 end

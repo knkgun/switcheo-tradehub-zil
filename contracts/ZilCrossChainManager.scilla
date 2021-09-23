@@ -35,6 +35,7 @@ type Error =
   | InvalidFromContract
   | InvalidToContract
   | InvalidMethod
+  | InvalidOperator
 
 let make_error =
   fun (result: Error) =>
@@ -60,6 +61,7 @@ let make_error =
       | InvalidFromContract => Int32 -18
       | InvalidToContract => Int32 -19
       | InvalidMethod => Int32 -20
+      | InvalidOperator => Int32 -21
       end
     in
     { _exception: "Error"; code: result_code }
@@ -94,9 +96,11 @@ field zilToPolyTxHashIndex: Uint256 = Uint256 0
 field fromChainTxExist : Map Uint64 (Map ByStr32 Unit) = Emp Uint64 (Map ByStr32 Unit)
 field contractadmin: ByStr20  = init_admin
 field stagingcontractadmin: Option ByStr20 = None {ByStr20}
+field operators: Map ByStr20 Unit = Emp ByStr20 Unit
 field whiteListFromContract: Map ByStr20 Unit = Emp ByStr20 Unit
 field whiteListToContract: Map ByStr20 Unit = Emp ByStr20 Unit
 field whiteListMethod: Map String Unit = Emp String Unit
+field needToBeValidator: Bool = True
 
 (* Procedures *)
 
@@ -171,6 +175,22 @@ procedure validMethod(method: String)
     e = InvalidMethod;
     ThrowError e
   end
+end
+
+procedure ValidateOperator(addr: ByStr20)
+  need <- needToBeValidator;
+  match need with
+  | True =>
+    val_opt <- operators[addr];
+    match val_opt with
+    | Some val =>
+    | None => 
+      e = InvalidOperator;
+      ThrowError e
+    end
+  | False =>
+  end
+
 end
 
 procedure executeCrossChainTxn (txparam: TxParam, fromChainId: Uint64, crossChainTxHash: ByStr)
@@ -319,9 +339,11 @@ end
 (* @param rawHeader: Poly chain genesis block raw header or raw  *)
 (*        Header including switching consensus peers info        *)
 (* @param pubkeys:  Poly chain consensus nodes public key list.  *)
-transition InitGenesisBlock(rawHeader: ByStr, pubkeys: List Pubkey)
+(* @param initiator: Wallet used by poly cli.  *)
+transition InitGenesisBlock(rawHeader: ByStr, pubkeys: List Pubkey, initiator: ByStr20)
   IsProxy;
   IsNotPaused;
+  ValidateOperator initiator;
   current_keepers_o <- conKeepersPublicKeyList;
   match current_keepers_o with
   | Nil =>
@@ -351,9 +373,11 @@ end
 (* @param rawHeader: Poly chain change book keeper block raw header *)
 (* @param pubkeys:  Poly chain consensus nodes public key list. *)
 (* @param sigList:  Poly chain consensus nodes signature list.  *)
-transition ChangeBookKeeper(rawHeader: ByStr, pubkeys: List Pubkey, sigList: List Signature)
+(* @param initiator:  Relayer zilliqa address.  *)
+transition ChangeBookKeeper(rawHeader: ByStr, pubkeys: List Pubkey, sigList: List Signature, initiator: ByStr20)
   IsProxy;
   IsNotPaused;
+  ValidateOperator initiator;
   header_o = deserialize_Header rawHeader zero_uint32;
   curStartHeight <- curEpochStartHeight;
   match header_o with
@@ -435,9 +459,11 @@ end
 (* @param curRawHeader:  Any header in current epoch consensus of Poly chain                   *)
 (* @param headerSig: The coverted signature veriable for solidity derived from Poly chain      *)
 (*                   consensus nodes signature  used to verify the validity of curRawHeader    *)
-transition VerifyHeaderAndExecuteTx(proof: Proof, rawHeader: ByStr, headerProof: Proof, curRawHeader: ByStr, headerSig: List Signature)
+(* @param initiator:  Relayer zilliqa address.  *)
+transition VerifyHeaderAndExecuteTx(proof: Proof, rawHeader: ByStr, headerProof: Proof, curRawHeader: ByStr, headerSig: List Signature, initiator: ByStr20)
   IsProxy;
   IsNotPaused;
+  ValidateOperator initiator;
   header_o = deserialize_Header rawHeader zero_uint32;
   curKeepers <- conKeepersPublicKeyList;
   curStartHeight <- curEpochStartHeight;
@@ -524,6 +550,17 @@ transition VerifyHeaderAndExecuteTx(proof: Proof, rawHeader: ByStr, headerProof:
   end
 end
 
+transition PopulateOperators(addr: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  operators[addr] := unit
+end
+
+transition DeleteOperators(addr: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  delete operators[addr]
+end
 
 transition PopulateWhiteListFromContract(addr: ByStr20, initiator: ByStr20)
   IsProxy;
@@ -589,4 +626,10 @@ transition PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32, initiator: B
   IsProxy;
   IsAdmin initiator;
   fromChainTxExist[chainId][txId] := unit
+end
+
+transition PopulateNeedToBeValidator(val: Bool, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  needToBeValidator := val
 end

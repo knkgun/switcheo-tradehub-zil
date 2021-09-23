@@ -87,6 +87,10 @@ type CalleeTransaction =
 | UpdateAdmin of ByStr20
 (* ClaimAdmin() *)
 | ClaimAdmin
+(* PopulateOperators(addr: ByStr20) *)
+| PopulateOperators of ByStr20
+(* DeleteOperators(addr: ByStr20) *)
+| DeleteOperators of ByStr20
 (* PopulateWhiteListFromContract(addr: ByStr20) *)
 | PopulateWhiteListFromContract of ByStr20
 (* DeleteWhiteListFromContract(addr: ByStr20)*)
@@ -109,6 +113,8 @@ type CalleeTransaction =
 | PopulateZilToPolyTxHashIndex of Uint256
 (* PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32)*)
 | PopulateFromChainTxExist of Uint64 ByStr32
+(* PopulateNeedToBeValidator(val: Bool) *)
+| PopulateNeedToBeValidator of Bool
 
 
 (* Type of (outstanding) transactions *)
@@ -195,6 +201,18 @@ let custom_transaction_msg_as_list =
         {_recipient: calleeContract;
          _tag: "ClaimAdmin";
          _amount: Uint128 0}
+        (* PopulateOperators(addr: ByStr20) *)
+      | PopulateOperators addr =>
+        {_recipient: calleeContract;
+         _tag: "PopulateOperators";
+         _amount: Uint128 0;
+         addr: addr}
+        (* DeleteOperators(addr: ByStr20) *)
+      | DeleteOperators addr =>
+       {_recipient: calleeContract;
+        _tag: "DeleteOperators";
+        _amount: Uint128 0;
+        addr: addr}
         (* PopulateWhiteListFromContract(addr: ByStr20) *)
       | PopulateWhiteListFromContract addr =>
         {_recipient: calleeContract;
@@ -263,6 +281,13 @@ let custom_transaction_msg_as_list =
          _amount: Uint128 0;
          chainId: chainId;
          txId: txId}
+        (* PopulateNeedToBeValidator(val: Bool) *)
+      | PopulateNeedToBeValidator val =>
+        {_recipient: calleeContract;
+         _tag: "PopulateNeedToBeValidator";
+         _amount: Uint128 0;
+         val: val}
+
       end
     in
     one_msg msg
@@ -515,6 +540,16 @@ transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
   SubmitCustomTransaction calleeContract transaction
 end
 
+transition SubmitCustomPopulateOperatorsTransaction(calleeContract: ByStr20, addr: ByStr20)
+  transaction = PopulateOperators addr;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomDeleteOperatorsTransaction(calleeContract: ByStr20, addr: ByStr20)
+  transaction = DeleteOperators addr;
+  SubmitCustomTransaction calleeContract transaction
+end
+
 transition SubmitCustomPopulateWhiteListFromContractTransaction(calleeContract: ByStr20, addr: ByStr20)
   transaction = PopulateWhiteListFromContract addr;
   SubmitCustomTransaction calleeContract transaction
@@ -567,6 +602,11 @@ end
 
 transition SubmitCustomPopulateFromChainTxExistTransaction(calleeContract: ByStr20, chainId: Uint64, txId: ByStr32)
   transaction = PopulateFromChainTxExist chainId txId;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateNeedToBeValidatorTransaction(calleeContract: ByStr20, val: Bool)
+  transaction = PopulateNeedToBeValidator val;
   SubmitCustomTransaction calleeContract transaction
 end
 
