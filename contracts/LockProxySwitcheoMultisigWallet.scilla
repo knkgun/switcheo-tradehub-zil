@@ -90,6 +90,8 @@ type CalleeTransaction =
 | PopulateNonce of Uint256
 (* PopulateRegister(asset: ByStr20, hash: ByStr32) *)
 | PopulateRegister of ByStr20 ByStr32
+(* SetCounterpartChainId(chainId: Uint64) *)
+| SetCounterpartChainId of Uint64
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -197,6 +199,12 @@ let custom_transaction_msg_as_list =
         _amount: Uint128 0;
         asset: asset;
         hash: hash}
+       (* SetCounterpartChainId(chainId: Uint64) *)
+      | SetCounterpartChainId chainId =>
+       {_recipient: calleeContract;
+        _tag: "SetCounterpartChainId";
+        _amount: Uint128 0;
+        chainId: chainId}
       end
     in
     one_msg msg
@@ -436,6 +444,12 @@ end
 (* Submit a new PopulateRegister transaction for future signoff *)
 transition SubmitCustomPopulateRegisterTransaction(calleeContract: ByStr20, asset: ByStr20, hash: ByStr32)
   transaction = PopulateRegister asset hash;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new SetCounterpartChainId transaction for future signoff *)
+transition SubmitCustomSetCounterpartChainIdTransaction(calleeContract: ByStr20, chainId: Uint64)
+  transaction = SetCounterpartChainId chainId;
   SubmitCustomTransaction calleeContract transaction
 end
 

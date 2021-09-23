@@ -702,3 +702,8 @@ transition PopulateRegister(asset: ByStr20, hash: ByStr32)
   register[asset] := hash
 end
 
+transition SetCounterpartChainId(chainId: Uint64)
+  IsAdmin _sender;
+  counterpart_chainId := chainId
+end
+
