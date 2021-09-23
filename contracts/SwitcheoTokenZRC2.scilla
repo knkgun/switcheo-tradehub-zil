@@ -25,6 +25,8 @@ type Error =
 | CodeInvalidAddress
 | CodeIsNotSelf
 | CodeIsNotOwner
+| StagingOwnerValidationFailed
+| StagingOwnerNotExist
 
 let make_error =
   fun (result : Error) =>
@@ -36,6 +38,8 @@ let make_error =
       | CodeInvalidAddress        => Int32 -4
       | CodeIsNotSelf             => Int32 -5
       | CodeIsNotOwner            => Int32 -6
+      | StagingOwnerValidationFailed => Int32 -7
+      | StagingOwnerNotExist => Int32 -8
       end
     in
     { _exception : "Error"; code : result_code }
@@ -84,6 +88,10 @@ field allowances: Map ByStr20 (Map ByStr20 Uint128)
 
 field lock_proxy: ByStr20 = init_lockproxy
 
+field contractowner: ByStr20 = contract_owner
+
+field stagingcontractowner: Option ByStr20 = None {ByStr20}
+
 (**************************************)
 (*             Procedures             *)
 (**************************************)
@@ -104,7 +112,8 @@ procedure IsNotSender(address: ByStr20)
 end
 
 procedure IsOwner()
-  is_owner = builtin eq _sender contract_owner;
+  owner <- contractowner;
+  is_owner = builtin eq _sender owner;
   match is_owner with
   | True =>
   | False =>
@@ -220,6 +229,34 @@ end
 (***************************************)
 (*             Transitions             *)
 (***************************************)
+
+transition UpdateOwner(newOwner: ByStr20)
+  IsOwner;
+  sco = Some {ByStr20} newOwner;
+  stagingcontractowner := sco
+end
+
+transition ClaimOwner()
+  stagingOwner <- stagingcontractowner;
+  match stagingOwner with
+  | Some owner =>
+    is_valid = builtin eq _sender owner;
+    match is_valid with
+    | True =>
+      contractowner := owner;
+      nonOwner = None {ByStr20};
+      stagingcontractowner := nonOwner;
+      e = { _eventname: "ClaimOwner"; new_owner: owner };
+      event e
+    | False =>
+      e = StagingOwnerValidationFailed;
+      ThrowError e
+    end
+  | None =>
+    e = StagingOwnerNotExist;
+    ThrowError e
+  end
+end
 
 (* @dev: Increase the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke.   *)
 (* param spender:      Address of the designated approved_spender.                                                   *)
