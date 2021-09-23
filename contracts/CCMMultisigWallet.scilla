@@ -98,7 +98,7 @@ type CalleeTransaction =
 (* PopulateWhiteListMethod(method: String) *)
 | PopulateWhiteListMethod of String
 (* DeleteWhiteListMethod(method: String) *)
-| DeleteWhiteListMethod of ByStr20
+| DeleteWhiteListMethod of String
 (* PopulateConKeepersPublicKeyList(keepers: List ByStr20) *)
 | PopulateConKeepersPublicKeyList of (List ByStr20)
 (* PopulateCurEpochStartHeight(height: Uint32) *)
@@ -540,8 +540,8 @@ transition SubmitCustomPopulateWhiteListMethodTransaction(calleeContract: ByStr2
   SubmitCustomTransaction calleeContract transaction
 end
 
-transition SubmitCustomDeleteWhiteListMethodTransaction(calleeContract: ByStr20, addr: ByStr20)
-  transaction = DeleteWhiteListMethod addr;
+transition SubmitCustomDeleteWhiteListMethodTransaction(calleeContract: ByStr20, method: String)
+  transaction = DeleteWhiteListMethod method;
   SubmitCustomTransaction calleeContract transaction
 end
 
