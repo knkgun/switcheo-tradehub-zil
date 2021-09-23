@@ -99,6 +99,7 @@ field operators: Map ByStr20 Unit = Emp ByStr20 Unit
 field whiteListFromContract: Map ByStr20 Unit = Emp ByStr20 Unit
 field whiteListToContract: Map ByStr20 Unit = Emp ByStr20 Unit
 field whiteListMethod: Map String Unit = Emp String Unit
+field needToBeValidator: Bool = True
 
 (* Procedures *)
 
@@ -176,13 +177,19 @@ procedure validMethod(method: String)
 end
 
 procedure ValidateOperator(addr: ByStr20)
-  val_opt <- operators[addr];
-  match val_opt with
-  | Some val =>
-  | None => 
-    e = InvalidOperator;
-    ThrowError e
+  need <- needToBeValidator;
+  match need with
+  | True =>
+    val_opt <- operators[addr];
+    match val_opt with
+    | Some val =>
+    | None => 
+      e = InvalidOperator;
+      ThrowError e
+    end
+  | False =>
   end
+
 end
 
 procedure executeCrossChainTxn (txparam: TxParam, fromChainId: Uint64, crossChainTxHash: ByStr)
@@ -611,4 +618,10 @@ transition PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32, initiator: B
   IsProxy;
   IsAdmin initiator;
   fromChainTxExist[chainId][txId] := unit
+end
+
+transition PopulateNeedToBeValidator(val: Bool, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  needToBeValidator := val
 end

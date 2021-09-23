@@ -111,6 +111,8 @@ type CalleeTransaction =
 | PopulateZilToPolyTxHashIndex of Uint256
 (* PopulateFromChainTxExist(chainId: Uint64, txId: ByStr32)*)
 | PopulateFromChainTxExist of Uint64 ByStr32
+(* PopulateNeedToBeValidator(val: Bool) *)
+| PopulateNeedToBeValidator of Bool
 
 
 (* Type of (outstanding) transactions *)
@@ -271,6 +273,13 @@ let custom_transaction_msg_as_list =
          _amount: Uint128 0;
          chainId: chainId;
          txId: txId}
+        (* PopulateNeedToBeValidator(val: Bool) *)
+      | PopulateNeedToBeValidator val =>
+        {_recipient: calleeContract;
+         _tag: "PopulateNeedToBeValidator";
+         _amount: Uint128 0;
+         val: val}
+
       end
     in
     one_msg msg
@@ -578,6 +587,11 @@ end
 
 transition SubmitCustomPopulateFromChainTxExistTransaction(calleeContract: ByStr20, chainId: Uint64, txId: ByStr32)
   transaction = PopulateFromChainTxExist chainId txId;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+transition SubmitCustomPopulateNeedToBeValidatorTransaction(calleeContract: ByStr20, val: Bool)
+  transaction = PopulateNeedToBeValidator val;
   SubmitCustomTransaction calleeContract transaction
 end
 
