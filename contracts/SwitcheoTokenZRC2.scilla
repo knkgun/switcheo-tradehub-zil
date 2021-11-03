@@ -22,9 +22,9 @@ type Error =
 | CodeIsSender
 | CodeInsufficientFunds
 | CodeInsufficientAllowance
+| CodeIsNotOwner
 | CodeInvalidAddress
 | CodeIsNotSelf
-| CodeIsNotOwner
 | StagingOwnerValidationFailed
 | StagingOwnerNotExist
 
@@ -32,14 +32,14 @@ let make_error =
   fun (result : Error) =>
     let result_code = 
       match result with
-      | CodeIsSender              => Int32 -1
-      | CodeInsufficientFunds     => Int32 -2
-      | CodeInsufficientAllowance => Int32 -3
-      | CodeInvalidAddress        => Int32 -4
-      | CodeIsNotSelf             => Int32 -5
-      | CodeIsNotOwner            => Int32 -6
-      | StagingOwnerValidationFailed => Int32 -7
-      | StagingOwnerNotExist => Int32 -8
+      | CodeIsSender                   => Int32 -1
+      | CodeInsufficientFunds          => Int32 -2
+      | CodeInsufficientAllowance      => Int32 -3
+      | CodeIsNotOwner                 => Int32 -4
+      | CodeInvalidAddress             => Int32 -5
+      | CodeIsNotSelf                  => Int32 -6
+      | StagingOwnerValidationFailed   => Int32 -7
+      | StagingOwnerNotExist           => Int32 -8
       end
     in
     { _exception : "Error"; code : result_code }
@@ -76,6 +76,9 @@ contract FungibleToken
   init_supply: Uint128,
   init_lockproxy: ByStr20
 )
+with
+  builtin eq init_supply zero
+=>
 
 (* Mutable fields *)
 
