@@ -3,7 +3,7 @@ scilla_version 0
 (***************************************************)
 (*               Associated library                *)
 (***************************************************)
-import IntUtils
+import IntUtils BoolUtils
 library FungibleToken
 
 let one_msg = 
@@ -77,7 +77,12 @@ contract FungibleToken
   init_lockproxy: ByStr20
 )
 with
-  builtin eq init_supply zero
+  (* init supply should be zero *)
+  let a = builtin eq init_supply zero in
+  let b = builtin eq init_lockproxy zero_addr in
+  (* lock proxy address should not be zero address *)
+  let c = negb b in
+    andb a c
 =>
 
 (* Mutable fields *)
