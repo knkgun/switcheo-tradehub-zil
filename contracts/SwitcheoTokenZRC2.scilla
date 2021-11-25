@@ -4,7 +4,7 @@ scilla_version 0
 (*               Associated library                *)
 (***************************************************)
 import IntUtils BoolUtils
-library FungibleToken
+library SwitcheoToken
 
 let one_msg = 
   fun (msg : Message) => 
@@ -25,8 +25,9 @@ type Error =
 | CodeIsNotOwner
 | CodeInvalidAddress
 | CodeIsNotSelf
-| StagingOwnerValidationFailed
-| StagingOwnerNotExist
+| CodeNotOwner
+| CodeNotPendingOwner
+| CodePendingOwnerNotEmpty
 
 let make_error =
   fun (result : Error) =>
@@ -38,8 +39,9 @@ let make_error =
       | CodeIsNotOwner                 => Int32 -4
       | CodeInvalidAddress             => Int32 -5
       | CodeIsNotSelf                  => Int32 -6
-      | StagingOwnerValidationFailed   => Int32 -7
-      | StagingOwnerNotExist           => Int32 -8
+      | CodeNotOwner                   => Int32 -7
+      | CodeNotPendingOwner            => Int32 -8
+      | CodePendingOwnerNotEmpty       => Int32 -9
       end
     in
     { _exception : "Error"; code : result_code }
@@ -67,7 +69,7 @@ let some_addr =
 (*             The contract definition             *)
 (***************************************************)
 
-contract FungibleToken
+contract SwitcheoToken
 (
   name: String,
   symbol: String,
@@ -96,9 +98,9 @@ field allowances: Map ByStr20 (Map ByStr20 Uint128)
 
 field lock_proxy: ByStr20 = init_lockproxy
 
-field contractowner: ByStr20 = contract_owner
+field current_owner: ByStr20 = contract_owner
 
-field stagingcontractowner: Option ByStr20 = None {ByStr20}
+field pending_owner: ByStr20 = zero_addr
 
 (**************************************)
 (*             Procedures             *)
@@ -119,9 +121,9 @@ procedure IsNotSender(address: ByStr20)
   end
 end
 
-procedure IsOwner()
-  owner <- contractowner;
-  is_owner = builtin eq _sender owner;
+procedure IsOwner(address: ByStr20)
+  owner <- current_owner;
+  is_owner = builtin eq address owner;
   match is_owner with
   | True =>
   | False =>
@@ -130,6 +132,27 @@ procedure IsOwner()
   end
 end
 
+procedure IsPendingOwner(address: ByStr20)
+  current_pending_owner <- pending_owner;
+  is_pending_owner = builtin eq current_pending_owner address;
+  match is_pending_owner with
+  | True =>
+  | False =>
+    err = CodeNotPendingOwner;
+    ThrowError err
+  end
+end
+
+procedure NoPendingOwner()
+  current_pending_owner <- pending_owner;
+  is_pending_owner_empty = builtin eq current_pending_owner zero_addr;
+  match is_pending_owner_empty with
+  | False =>
+    err = CodePendingOwnerNotEmpty;
+    ThrowError err
+  | True =>
+  end
+end
 
 procedure AuthorizedMoveIfSufficientBalance(from: ByStr20, to: ByStr20, amount: Uint128)
   o_from_bal <- balances[from];
@@ -154,7 +177,7 @@ procedure AuthorizedMoveIfSufficientBalance(from: ByStr20, to: ByStr20, amount: 
   end
 end
 
-procedure validateAddress(address: ByStr20)
+procedure ValidateNonZeroAddress(address: ByStr20)
   is_zero_addr = builtin eq address zero_addr;
   match is_zero_addr with
   | True =>
@@ -164,8 +187,8 @@ procedure validateAddress(address: ByStr20)
   end
 end
 
-procedure isSelf()
-  is_self = builtin eq _sender _this_address;
+procedure IsSelf(address: ByStr20)
+  is_self = builtin eq address _this_address;
   match is_self with
   | True =>
   | False =>
@@ -175,8 +198,8 @@ procedure isSelf()
 end
 
 (* @dev Creates amount tokens and assigns them to account, increasing the tital supply *)
-procedure mint(address: ByStr20, amount: Uint128)
-  validateAddress address;
+procedure AuthorizedMint(address: ByStr20, amount: Uint128)
+  ValidateNonZeroAddress address;
   current_supply <- total_supply;
   new_supply = builtin add current_supply amount;
   total_supply := new_supply;
@@ -186,12 +209,14 @@ procedure mint(address: ByStr20, amount: Uint128)
   | Some bal => builtin add bal amount
   | None => amount
   end;
-  balances[address] := new_bal
+  balances[address] := new_bal;
+  e = {_eventname: "MintSuccess"; minter: _sender; recipient: address; amount: amount};
+  event e
 end
 
 (* @dev Destorys amount token from address, reducing the total supply *)
-procedure burn(address: ByStr20, amount: Uint128)
-  validateAddress address;
+procedure AuthorizedBurnIfSufficientBalance(address: ByStr20, amount: Uint128)
+  ValidateNonZeroAddress address;
   current_supply <- total_supply;
   new_supply = builtin sub current_supply amount;
   total_supply := new_supply;
@@ -202,31 +227,34 @@ procedure burn(address: ByStr20, amount: Uint128)
   match can_do with
   | True =>
     new_from_bal = builtin sub bal amount;
-    balances[address] := new_from_bal
+    balances[address] := new_from_bal;
+
+    e = { _eventname : "BurnSuccess"; burner : _sender; burn_account : address; amount : amount };
+    event e
   | False =>
     err = CodeInsufficientFunds;
     ThrowError err
   end
 end
 
-procedure handleMint(address: ByStr20, amount: Uint128)
+procedure MintIfLockProxy(address: ByStr20, amount: Uint128)
   lp <- lock_proxy;
   is_lp = builtin eq lp address;
   match is_lp with
   | True =>
-    mint address amount
+    AuthorizedMint address amount
   | False =>
   end
   
 end
 
-procedure handleBurn(address: ByStr20, amount: Uint128)
+procedure BurnIfLockProxy(address: ByStr20, amount: Uint128)
   lp <- lock_proxy;
   is_lp = builtin eq lp address;
   match is_lp with
   | True =>
     msg_to_burn = {_tag : "Burn"; _recipient : _this_address; _amount : zero; 
-                   burn_account : address; amount : amount};
+                   burner : _sender; burn_account : address; amount : amount};
     msgs = one_msg msg_to_burn;
     send msgs
   | False =>
@@ -238,32 +266,23 @@ end
 (*             Transitions             *)
 (***************************************)
 
-transition UpdateOwner(newOwner: ByStr20)
-  IsOwner;
-  sco = Some {ByStr20} newOwner;
-  stagingcontractowner := sco
+(* @dev: Transfers contract ownership to a new address. The new address must call the AcceptOwnership transition to finalize the transfer. *)
+(* @param new_owner: Address of the new current_owner.                                                                                    *)
+transition TransferOwnership(new_owner: ByStr20)
+  IsOwner _sender;
+  pending_owner := new_owner;
+  e = {_eventname : "OwnershipTransferInitiated"; current_owner : _sender; pending_owner : new_owner};
+  event e
 end
 
-transition ClaimOwner()
-  stagingOwner <- stagingcontractowner;
-  match stagingOwner with
-  | Some owner =>
-    is_valid = builtin eq _sender owner;
-    match is_valid with
-    | True =>
-      contractowner := owner;
-      nonOwner = None {ByStr20};
-      stagingcontractowner := nonOwner;
-      e = { _eventname: "ClaimOwner"; new_owner: owner };
-      event e
-    | False =>
-      e = StagingOwnerValidationFailed;
-      ThrowError e
-    end
-  | None =>
-    e = StagingOwnerNotExist;
-    ThrowError e
-  end
+(* @dev: Finalizes transfer of contract ownership. Must be called by the new current_owner. *)
+transition AcceptOwnership()
+  IsPendingOwner _sender;
+  previous_current_owner <- current_owner;
+  current_owner := _sender;
+  pending_owner := zero_addr;
+  e = {_eventname : "OwnershipTransferAccepted"; previous_current_owner : previous_current_owner; current_owner : _sender};
+  event e
 end
 
 (* @dev: Increase the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke.   *)
@@ -302,9 +321,9 @@ end
 (* @param to:  Address of the recipient whose balance is increased.                 *)
 (* @param amount:     Amount of tokens to be sent.                                  *)
 transition Transfer(to: ByStr20, amount: Uint128)
-  handleMint _sender amount;
+  MintIfLockProxy _sender amount;
   AuthorizedMoveIfSufficientBalance _sender to amount;
-  handleBurn to amount;
+  BurnIfLockProxy to amount;
   e = {_eventname : "TransferSuccess"; sender : _sender; recipient : to; amount : amount};
   event e;
   (* Prevent sending to a contract address that does not support transfers of token *)
@@ -328,7 +347,7 @@ transition TransferFrom(from: ByStr20, to: ByStr20, amount: Uint128)
   match can_do with
   | True =>
     AuthorizedMoveIfSufficientBalance from to amount;
-    handleBurn to amount;
+    BurnIfLockProxy to amount;
     e = {_eventname : "TransferFromSuccess"; initiator : _sender; sender : from; recipient : to; amount : amount};
     event e;
     new_allowed = builtin sub allowed amount;
@@ -350,20 +369,17 @@ end
 (* @param burn_account: Address of the token_owner whose balance is to decrease.  *)
 (* @param amount:       Number of tokens to be burned.                            *)
 transition Burn(burn_account: ByStr20, amount: Uint128)
-  isSelf;
-  burn burn_account amount;
-  lp <- lock_proxy;
-  e = { _eventname : "Burnt"; burner : lp; burn_account : burn_account; amount : amount };
-  event e;
+  IsSelf _sender;
+  AuthorizedBurnIfSufficientBalance burn_account amount;
   (* Provide the sender the status of the burn. *)
   msg_call_back = { _tag: "BurnSuccessCallBack"; _recipient : _sender; _amount: zero;
-                  burner: lp; burn_account: burn_account; amount: amount };
+                  burner: _sender; burn_account: burn_account; amount: amount };
   msgs = one_msg msg_call_back;
   send msgs
 end
 
 transition ChangeLockProxy(addr: ByStr20)
-  IsOwner;
+  IsOwner _sender;
   lock_proxy := addr;
   e = {_eventname : "ChangeLockProxy"; lockproxy : addr};
   event e
