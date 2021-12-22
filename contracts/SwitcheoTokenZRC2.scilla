@@ -254,7 +254,7 @@ procedure BurnIfLockProxy(address: ByStr20, amount: Uint128)
   match is_lp with
   | True =>
     msg_to_burn = {_tag : "Burn"; _recipient : _this_address; _amount : zero; 
-                   burner : _sender; burn_account : address; amount : amount};
+                  burn_account : address; amount : amount};
     msgs = one_msg msg_to_burn;
     send msgs
   | False =>
